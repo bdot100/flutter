@@ -18,7 +18,6 @@ import 'base/utils.dart';
 import 'build_info.dart';
 import 'compile.dart';
 import 'convert.dart';
-import 'dart/package_map.dart';
 import 'devfs.dart';
 import 'device.dart';
 import 'globals.dart' as globals;
@@ -86,7 +85,6 @@ class HotRunner extends ResidentRunner {
     super.projectRootPath,
     super.dillOutputPath,
     super.stayResident,
-    bool super.ipv6 = false,
     super.machine,
     super.devtoolsHandler,
     StopwatchFactory stopwatchFactory = const StopwatchFactory(),
@@ -126,9 +124,6 @@ class HotRunner extends ResidentRunner {
   /// This is only used for hot restart, incremental dills uploaded as part of the hot
   /// reload process do not have this issue.
   bool _swap = false;
-
-  /// Whether the resident runner has correctly attached to the running application.
-  bool _didAttach = false;
 
   final Map<String, List<int>> benchmarkData = <String, List<int>>{};
 
@@ -177,7 +172,7 @@ class HotRunner extends ResidentRunner {
     if (!result.isOk) {
       throw vm_service.RPCError(
         'Unable to reload sources',
-        RPCErrorCodes.kInternalError,
+        vm_service.RPCErrorKind.kInternalError.code,
         '',
       );
     }
@@ -189,7 +184,7 @@ class HotRunner extends ResidentRunner {
     if (!result.isOk) {
       throw vm_service.RPCError(
         'Unable to restart',
-        RPCErrorCodes.kInternalError,
+        vm_service.RPCErrorKind.kInternalError.code,
         '',
       );
     }
@@ -222,16 +217,29 @@ class HotRunner extends ResidentRunner {
     throw Exception('Failed to compile $expression');
   }
 
-  // Returns the exit code of the flutter tool process, like [run].
   @override
+  @nonVirtual
   Future<int> attach({
     Completer<DebugConnectionInfo>? connectionInfoCompleter,
     Completer<void>? appStartedCompleter,
     bool allowExistingDdsInstance = false,
-    bool enableDevTools = false,
     bool needsFullRestart = true,
   }) async {
-    _didAttach = true;
+    stopAppDuringCleanup = false;
+    return _attach(
+      connectionInfoCompleter: connectionInfoCompleter,
+      appStartedCompleter: appStartedCompleter,
+      allowExistingDdsInstance: allowExistingDdsInstance,
+      needsFullRestart: needsFullRestart,
+    );
+  }
+
+  Future<int> _attach({
+    Completer<DebugConnectionInfo>? connectionInfoCompleter,
+    Completer<void>? appStartedCompleter,
+    bool allowExistingDdsInstance = false,
+    bool needsFullRestart = true,
+  }) async {
     try {
       await connectToServiceProtocol(
         reloadSources: _reloadSourcesService,
@@ -253,7 +261,8 @@ class HotRunner extends ResidentRunner {
       await enableObservatory();
     }
 
-    if (enableDevTools) {
+    // TODO(bkonyi): remove when ready to serve DevTools from DDS.
+    if (debuggingOptions.enableDevTools) {
       // The method below is guaranteed never to return a failing future.
       unawaited(residentDevtoolsHandler!.serveAndAnnounceDevTools(
         devToolsServerAddress: debuggingOptions.devToolsServerAddress,
@@ -263,8 +272,7 @@ class HotRunner extends ResidentRunner {
     }
 
     for (final FlutterDevice? device in flutterDevices) {
-      await device!.initLogReader();
-      device
+      device!
         .developmentShaderCompiler
         .configureCompiler(device.targetPlatform);
     }
@@ -362,7 +370,6 @@ class HotRunner extends ResidentRunner {
   Future<int> run({
     Completer<DebugConnectionInfo>? connectionInfoCompleter,
     Completer<void>? appStartedCompleter,
-    bool enableDevTools = false,
     String? route,
   }) async {
     await _calculateTargetPlatform();
@@ -377,6 +384,7 @@ class HotRunner extends ResidentRunner {
         fileSystem: fileSystem,
         flutterDevices: flutterDevices,
         logger: logger,
+        packageConfigPath: debuggingOptions.buildInfo.packageConfigPath,
         packageConfig: debuggingOptions.buildInfo.packageConfig,
       );
     }
@@ -467,10 +475,9 @@ class HotRunner extends ResidentRunner {
       return 1;
     }
 
-    return attach(
+    return _attach(
       connectionInfoCompleter: connectionInfoCompleter,
       appStartedCompleter: appStartedCompleter,
-      enableDevTools: enableDevTools,
       needsFullRestart: false,
     );
   }
@@ -492,7 +499,7 @@ class HotRunner extends ResidentRunner {
     if (rebuildBundle) {
       globals.printTrace('Updating assets');
       final int result = await assetBundle.build(
-        packagesPath: '.packages',
+        packageConfigPath: debuggingOptions.buildInfo.packageConfigPath,
         flavor: debuggingOptions.buildInfo.flavor,
       );
       if (result != 0) {
@@ -646,14 +653,6 @@ class HotRunner extends ResidentRunner {
         final Future<vm_service.Isolate?> reloadIsolate = device.vmService!
           .getIsolateOrNull(view.uiIsolate!.id!);
         operations.add(reloadIsolate.then((vm_service.Isolate? isolate) async {
-          // TODO(andrewkolos): this race is meant to assist in debugging
-          // https://github.com/flutter/flutter/issues/145812. When the issue
-          // is resolved, this trace (and probably all others added by
-          // the same PR) can be removed.
-          globals.logger.printTrace(
-            'Beginning of UI start paused handler. '
-            'uiIsolate = $isolate; isolate.pauseEvent.kind = ${isolate?.pauseEvent!.kind}',
-          );
           if ((isolate != null) && isPauseEvent(isolate.pauseEvent!.kind!)) {
             // The embedder requires that the isolate is unpaused, because the
             // runInView method requires interaction with dart engine APIs that
@@ -676,7 +675,6 @@ class HotRunner extends ResidentRunner {
             await Future.wait(breakpointAndExceptionRemoval);
             await device.vmService!.service.resume(view.uiIsolate!.id!);
           }
-          globals.logger.printTrace('End of UI start paused handler.');
         }));
       }
 
@@ -790,7 +788,11 @@ class HotRunner extends ResidentRunner {
       if (!silent) {
         globals.printStatus('Restarted application in ${getElapsedAsMilliseconds(timer.elapsed)}.');
       }
+      // TODO(bkonyi): remove when ready to serve DevTools from DDS.
       unawaited(residentDevtoolsHandler!.hotRestart(flutterDevices));
+      // for (final FlutterDevice? device in flutterDevices) {
+      //   unawaited(device?.handleHotRestart());
+      // }
       return result;
     }
     final OperationResult result = await _hotReloadHelper(
@@ -1151,7 +1153,7 @@ class HotRunner extends ResidentRunner {
     } else {
       commandHelp.hWithoutDetails.print();
     }
-    if (_didAttach) {
+    if (stopAppDuringCleanup) {
       commandHelp.d.print();
     }
     commandHelp.c.print();
@@ -1246,13 +1248,14 @@ class HotRunner extends ResidentRunner {
 
   @override
   Future<void> cleanupAfterSignal() async {
+    await residentDevtoolsHandler!.shutdown();
     await stopEchoingDeviceLog();
     await hotRunnerConfig!.runPreShutdownOperations();
-    if (_didAttach) {
-      appFinished();
-    } else {
-      await exitApp();
+    shutdownDartDevelopmentService();
+    if (stopAppDuringCleanup) {
+      return exitApp();
     }
+    appFinished();
   }
 
   @override
@@ -1625,24 +1628,13 @@ class ProjectFileInvalidator {
         }
       }
     }
-    // We need to check the .packages file too since it is not used in compilation.
+    // We need to check the .dart_tool/package_config.json file too since it is
+    // not used in compilation.
     final File packageFile = _fileSystem.file(packagesPath);
     final Uri packageUri = packageFile.uri;
     final DateTime updatedAt = packageFile.statSync().modified;
     if (updatedAt.isAfter(lastCompiled)) {
       invalidatedFiles.add(packageUri);
-      packageConfig = await _createPackageConfig(packagesPath);
-      // The frontend_server might be monitoring the package_config.json file,
-      // Pub should always produce both files.
-      // TODO(zanderso): remove after https://github.com/flutter/flutter/issues/55249
-      if (_fileSystem.path.basename(packagesPath) == '.packages') {
-        final File packageConfigFile = _fileSystem.file(packagesPath)
-          .parent.childDirectory('.dart_tool')
-          .childFile('package_config.json');
-        if (packageConfigFile.existsSync()) {
-          invalidatedFiles.add(packageConfigFile.uri);
-        }
-      }
     }
 
     _logger.printTrace(
@@ -1659,13 +1651,6 @@ class ProjectFileInvalidator {
   bool _isNotInPubCache(Uri uri) {
     return !(_platform.isWindows && uri.path.contains(_pubCachePathWindows))
         && !uri.path.contains(_pubCachePathLinuxAndMac);
-  }
-
-  Future<PackageConfig> _createPackageConfig(String packagesPath) {
-    return loadPackageConfigWithLogging(
-      _fileSystem.file(packagesPath),
-      logger: _logger,
-    );
   }
 }
 
@@ -1727,6 +1712,7 @@ abstract class HotRunnerNativeAssetsBuilder {
     required Uri projectUri,
     required FileSystem fileSystem,
     required List<FlutterDevice> flutterDevices,
+    required String packageConfigPath,
     required PackageConfig packageConfig,
     required Logger logger,
   });

@@ -121,11 +121,12 @@ void testUsingContext(
           FileSystem: () => LocalFileSystemBlockingSetCurrentDirectory(),
           PlistParser: () => FakePlistParser(),
           Signals: () => FakeSignals(),
-          Pub: () => ThrowingPub(), // prevent accidentally using pub.
+          Pub: () => const ThrowingPub(), // prevent accidentally using pub.
           CrashReporter: () => const NoopCrashReporter(),
           TemplateRenderer: () => const MustacheTemplateRenderer(),
           BuildTargets: () => const BuildTargetsImpl(),
           Analytics: () => const NoOpAnalytics(),
+          Stdio: () => FakeStdio(),
         },
         body: () {
           // To catch all errors thrown by the test, even uncaught async errors, we use a zone.

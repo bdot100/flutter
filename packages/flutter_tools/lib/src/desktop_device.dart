@@ -19,6 +19,7 @@ import 'device_port_forwarder.dart';
 import 'globals.dart' as globals;
 import 'macos/macos_device.dart';
 import 'protocol_discovery.dart';
+import 'vmservice.dart';
 
 /// A partial implementation of Device for desktop-class devices to inherit
 /// from, containing implementations that are common to all desktop devices.
@@ -26,7 +27,7 @@ abstract class DesktopDevice extends Device {
   DesktopDevice(super.id, {
       required PlatformType super.platformType,
       required super.ephemeral,
-      required Logger logger,
+      required super.logger,
       required ProcessManager processManager,
       required FileSystem fileSystem,
       required OperatingSystemUtils operatingSystemUtils,
@@ -114,7 +115,6 @@ abstract class DesktopDevice extends Device {
     required DebuggingOptions debuggingOptions,
     Map<String, dynamic> platformArgs = const <String, dynamic>{},
     bool prebuiltApplication = false,
-    bool ipv6 = false,
     String? userIdentifier,
   }) async {
     if (!prebuiltApplication) {
@@ -158,7 +158,7 @@ abstract class DesktopDevice extends Device {
     final ProtocolDiscovery vmServiceDiscovery = ProtocolDiscovery.vmService(_deviceLogReader,
       devicePort: debuggingOptions.deviceVmServicePort,
       hostPort: debuggingOptions.hostVmServicePort,
-      ipv6: ipv6,
+      ipv6: debuggingOptions.ipv6,
       logger: _logger,
     );
     try {
@@ -385,4 +385,7 @@ class DesktopLogReader extends DeviceLogReader {
   void dispose() {
     // Nothing to dispose.
   }
+
+  @override
+  Future<void> provideVmService(FlutterVmService connectedVmService) async { }
 }

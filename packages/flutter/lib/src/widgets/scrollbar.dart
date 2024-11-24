@@ -2,6 +2,18 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'package:flutter/cupertino.dart';
+/// @docImport 'package:flutter/material.dart';
+/// @docImport 'package:flutter_test/flutter_test.dart';
+///
+/// @docImport 'editable_text.dart';
+/// @docImport 'list_wheel_scroll_view.dart';
+/// @docImport 'nested_scroll_view.dart';
+/// @docImport 'page_view.dart';
+/// @docImport 'scroll_view.dart';
+/// @docImport 'widget_state.dart';
+library;
+
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -383,12 +395,11 @@ class ScrollbarPainter extends ChangeNotifier implements CustomPainter {
   // Track Offsets
   // The track is offset by only padding.
   double get _totalTrackMainAxisOffsets => _isVertical ? padding.vertical : padding.horizontal;
-  double get _leadingTrackMainAxisOffset {
-    return switch (_resolvedOrientation) {
-      ScrollbarOrientation.left || ScrollbarOrientation.right => padding.top,
-      ScrollbarOrientation.top || ScrollbarOrientation.bottom => padding.left,
-    };
-  }
+
+  double get _leadingTrackMainAxisOffset => switch (_resolvedOrientation) {
+    ScrollbarOrientation.left || ScrollbarOrientation.right => padding.top,
+    ScrollbarOrientation.top || ScrollbarOrientation.bottom => padding.left,
+  };
 
   Rect? _thumbRect;
   // The current scroll position + _leadingThumbMainAxisOffset
@@ -1127,7 +1138,7 @@ class RawScrollbar extends StatefulWidget {
   /// {@endtemplate}
   ///
   /// Subclass [Scrollbar] can hide and show the scrollbar thumb in response to
-  /// [MaterialState]s by using [ScrollbarThemeData.thumbVisibility].
+  /// [WidgetState]s by using [ScrollbarThemeData.thumbVisibility].
   final bool? thumbVisibility;
 
   /// The [OutlinedBorder] of the scrollbar's thumb.
@@ -1203,7 +1214,7 @@ class RawScrollbar extends StatefulWidget {
   /// {@endtemplate}
   ///
   /// Subclass [Scrollbar] can hide and show the scrollbar thumb in response to
-  /// [MaterialState]s by using [ScrollbarThemeData.trackVisibility].
+  /// [WidgetState]s by using [ScrollbarThemeData.trackVisibility].
   final bool? trackVisibility;
 
   /// The [Radius] of the scrollbar track's rounded rectangle corners.
@@ -1367,6 +1378,7 @@ class RawScrollbarState<T extends RawScrollbar> extends State<T> with TickerProv
   @protected
   bool get enableGestures => widget.interactive ?? true;
 
+  @protected
   @override
   void initState() {
     super.initState();
@@ -1393,6 +1405,7 @@ class RawScrollbarState<T extends RawScrollbar> extends State<T> with TickerProv
     );
   }
 
+  @protected
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -1551,6 +1564,7 @@ class RawScrollbarState<T extends RawScrollbar> extends State<T> with TickerProv
       ..ignorePointer = !enableGestures;
   }
 
+  @protected
   @override
   void didUpdateWidget(T oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -1788,7 +1802,11 @@ class RawScrollbarState<T extends RawScrollbar> extends State<T> with TickerProv
     _cachedController = null;
   }
 
-  void _handleTrackTapDown(TapDownDetails details) {
+  /// Handler called when the track is tapped in order to page in the tapped
+  /// direction.
+  @protected
+  @mustCallSuper
+  void handleTrackTapDown(TapDownDetails details) {
     // The Scrollbar should page towards the position of the tap on the track.
     assert(_debugCheckHasValidScrollPosition());
     _cachedController = _effectiveScrollController;
@@ -1977,7 +1995,7 @@ class RawScrollbarState<T extends RawScrollbar> extends State<T> with TickerProv
       return gestures;
     }
 
-    switch (_axis) {
+    switch (_effectiveScrollController!.position.axis) {
       case Axis.horizontal:
         gestures[_HorizontalThumbDragGestureRecognizer] =
           GestureRecognizerFactoryWithHandlers<_HorizontalThumbDragGestureRecognizer>(
@@ -1996,8 +2014,6 @@ class RawScrollbarState<T extends RawScrollbar> extends State<T> with TickerProv
             ),
             _initThumbDragGestureRecognizer,
           );
-      case null:
-        return gestures;
     }
 
     gestures[_TrackTapGestureRecognizer] =
@@ -2007,7 +2023,7 @@ class RawScrollbarState<T extends RawScrollbar> extends State<T> with TickerProv
           customPaintKey: _scrollbarPainterKey,
         ),
         (_TrackTapGestureRecognizer instance) {
-          instance.onTapDown = _handleTrackTapDown;
+          instance.onTapDown = handleTrackTapDown;
         },
       );
 
@@ -2146,6 +2162,7 @@ class RawScrollbarState<T extends RawScrollbar> extends State<T> with TickerProv
     }
   }
 
+  @protected
   @override
   void dispose() {
     _fadeoutAnimationController.dispose();
@@ -2155,6 +2172,7 @@ class RawScrollbarState<T extends RawScrollbar> extends State<T> with TickerProv
     super.dispose();
   }
 
+  @protected
   @override
   Widget build(BuildContext context) {
     updateScrollbarPainter();

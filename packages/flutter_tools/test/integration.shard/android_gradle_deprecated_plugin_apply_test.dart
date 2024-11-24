@@ -24,8 +24,6 @@ void main() {
   testWithoutContext(
       'gradle prints warning when Flutter\'s Gradle plugins are applied using deprecated "apply plugin" way', () async {
     // Create a new flutter project.
-    final String flutterBin =
-    fileSystem.path.join(getFlutterRoot(), 'bin', 'flutter');
     ProcessResult result = await processManager.run(<String>[
       flutterBin,
       'create',
@@ -63,14 +61,14 @@ apply from: "$flutterSdkPath/packages/flutter_tools/gradle/app_plugin_loader.gra
     );
   buildGradle.writeAsStringSync(r'''
 buildscript {
-    ext.kotlin_version = '1.7.10'
+    ext.kotlin_version = '1.8.22'
     repositories {
         google()
         mavenCentral()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.3.0'
+        classpath 'com.android.tools.build:gradle:8.1.0'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
@@ -82,16 +80,16 @@ allprojects {
     }
 }
 
-rootProject.buildDir = '../build'
+rootProject.layout.buildDirectory.value(rootProject.layout.buildDirectory.dir("../../build").get())
 subprojects {
-    project.buildDir = "${rootProject.buildDir}/${project.name}"
+    project.layout.buildDirectory.value(rootProject.layout.buildDirectory.dir(project.name).get())
 }
 subprojects {
     project.evaluationDependsOn(':app')
 }
 
 tasks.register("clean", Delete) {
-    delete rootProject.buildDir
+    delete rootProject.layout.buildDirectory
 }
 ''');
   appBuildGradle.writeAsStringSync(r'''

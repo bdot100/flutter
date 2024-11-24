@@ -47,7 +47,7 @@ void main() {
       mainPath: globals.fs.path.join('lib', 'main.dart'),
       assetDirPath: 'example',
       depfilePath: 'example.d',
-      buildSystem: buildSystem
+      buildSystem: buildSystem,
     );
     expect(globals.fs.file(globals.fs.path.join('example', 'kernel_blob.bin')).existsSync(), true);
     expect(globals.fs.file(globals.fs.path.join('example', 'LICENSE')).existsSync(), true);
@@ -71,8 +71,8 @@ void main() {
               artifacts.getArtifactPath(Artifact.engineDartBinary),
               'run',
               'increment',
-              '--input=/.tmp_rand0/my-asset.txt-transformOutput0.txt',
-              '--output=/.tmp_rand0/my-asset.txt-transformOutput1.txt'
+              '--input=/.tmp_rand0/rand0/my-asset.txt-transformOutput0.txt',
+              '--output=/.tmp_rand0/rand0/my-asset.txt-transformOutput1.txt'
             ],
             onRun: (List<String> command) {
               final ArgResults argParseResults = (ArgParser()
@@ -136,7 +136,7 @@ void main() {
         mainPath: 'lib/main.dart',
         assetDirPath: 'example',
         depfilePath: 'example.d',
-        buildSystem: TestBuildSystem.all(BuildResult(success: false))
+        buildSystem: TestBuildSystem.all(BuildResult(success: false)),
       ),
       throwsToolExit()
     );
@@ -181,7 +181,7 @@ void main() {
       mainPath: mainPath,
       assetDirPath: assetDirPath,
       depfilePath: depfilePath,
-      buildSystem: buildSystem
+      buildSystem: buildSystem,
     );
 
     expect(env, isNotNull);

@@ -2,11 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:convert';
 
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:flutter_tools/src/base/logger.dart';
 import 'package:flutter_tools/src/build_info.dart';
+import 'package:flutter_tools/src/dart/pub.dart';
 import 'package:flutter_tools/src/flutter_manifest.dart';
 import 'package:flutter_tools/src/macos/cocoapod_utils.dart';
 import 'package:flutter_tools/src/macos/cocoapods.dart';
@@ -15,6 +17,7 @@ import 'package:test/fake.dart';
 
 import '../../src/common.dart';
 import '../../src/context.dart';
+import '../../src/fake_pub_deps.dart';
 
 void main() {
   group('processPodsIfNeeded', () {
@@ -35,7 +38,14 @@ void main() {
         ..web = FakeWebProject()
         ..windows = FakeWindowsProject()
         ..linux = FakeLinuxProject();
-      flutterProject.directory.childFile('.packages').createSync(recursive: true);
+      flutterProject.directory.childDirectory('.dart_tool').childFile('package_config.json')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('''
+{
+  "packages": [],
+  "configVersion": 2
+}
+''');
     }
 
     setUp(() async {
@@ -60,17 +70,25 @@ void main() {
       ''';
 
       final Directory fakePubCache = fileSystem.systemTempDirectory.childDirectory('cache');
-      final File packagesFile = flutterProject.directory.childFile('.packages')
+      final File packageConfigFile = flutterProject.directory.childDirectory('.dart_tool').childFile('package_config.json')
             ..createSync(recursive: true);
+      final Map<String, Object?> packageConfig = <String, Object?>{
+        'packages': <Object?>[],
+        'configVersion': 2,
+      };
       for (final String name in pluginNames) {
         final Directory pluginDirectory = fakePubCache.childDirectory(name);
-        packagesFile.writeAsStringSync(
-            '$name:${pluginDirectory.childFile('lib').uri}\n',
-            mode: FileMode.writeOnlyAppend);
+        (packageConfig['packages']! as List<Object?>).add(<String, Object?>{
+          'name': name,
+          'rootUri': pluginDirectory.uri.toString(),
+          'packageUri': 'lib/',
+        });
         pluginDirectory.childFile('pubspec.yaml')
             ..createSync(recursive: true)
             ..writeAsStringSync(pluginYamlTemplate.replaceAll('PLUGIN_CLASS', name));
       }
+
+      packageConfigFile.writeAsStringSync(jsonEncode(packageConfig));
     }
 
     group('for iOS', () {
@@ -91,7 +109,8 @@ void main() {
           expect(cocoaPods.processedPods, isTrue);
         }, overrides: <Type, Generator>{
           FileSystem: () => fs,
-          ProcessManager: () => FakeProcessManager.any(),
+          ProcessManager: FakeProcessManager.empty,
+          Pub: FakePubWithPrimedDeps.new,
           CocoaPods: () => cocoaPods,
         });
 
@@ -109,7 +128,8 @@ void main() {
           expect(cocoaPods.processedPods, isTrue);
         }, overrides: <Type, Generator>{
           FileSystem: () => fs,
-          ProcessManager: () => FakeProcessManager.any(),
+          ProcessManager: FakeProcessManager.empty,
+          Pub: FakePubWithPrimedDeps.new,
           CocoaPods: () => cocoaPods,
         });
 
@@ -126,7 +146,8 @@ void main() {
           expect(cocoaPods.processedPods, isFalse);
         }, overrides: <Type, Generator>{
           FileSystem: () => fs,
-          ProcessManager: () => FakeProcessManager.any(),
+          ProcessManager: FakeProcessManager.empty,
+          Pub: FakePubWithPrimedDeps.new,
           CocoaPods: () => cocoaPods,
         });
 
@@ -142,7 +163,8 @@ void main() {
           expect(cocoaPods.processedPods, isFalse);
         }, overrides: <Type, Generator>{
           FileSystem: () => fs,
-          ProcessManager: () => FakeProcessManager.any(),
+          ProcessManager: FakeProcessManager.empty,
+          Pub: FakePubWithPrimedDeps.new,
           CocoaPods: () => cocoaPods,
         });
       });
@@ -155,7 +177,7 @@ void main() {
             'plugin_one',
             'plugin_two'
           ]);
-          flutterProject.usesSwiftPackageManager = true;
+          flutterProject.ios.usesSwiftPackageManager = true;
           flutterProject.ios.podfile.createSync(recursive: true);
 
           await processPodsIfNeeded(
@@ -166,7 +188,8 @@ void main() {
           expect(cocoaPods.processedPods, isTrue);
         }, overrides: <Type, Generator>{
           FileSystem: () => fs,
-          ProcessManager: () => FakeProcessManager.any(),
+          ProcessManager: FakeProcessManager.empty,
+          Pub: FakePubWithPrimedDeps.new,
           CocoaPods: () => cocoaPods,
         });
 
@@ -177,7 +200,7 @@ void main() {
             'plugin_one',
             'plugin_two'
           ]);
-          flutterProject.usesSwiftPackageManager = true;
+          flutterProject.ios.usesSwiftPackageManager = true;
 
           await processPodsIfNeeded(
             flutterProject.ios,
@@ -187,7 +210,7 @@ void main() {
           expect(cocoaPods.processedPods, isFalse);
         }, overrides: <Type, Generator>{
           FileSystem: () => fs,
-          ProcessManager: () => FakeProcessManager.any(),
+          ProcessManager: FakeProcessManager.empty,
           CocoaPods: () => cocoaPods,
         });
 
@@ -198,7 +221,7 @@ void main() {
             'plugin_one',
             'plugin_two'
           ]);
-          flutterProject.usesSwiftPackageManager = true;
+          flutterProject.ios.usesSwiftPackageManager = true;
           flutterProject.ios.flutterPluginSwiftPackageManifest.createSync(recursive: true);
 
           await processPodsIfNeeded(
@@ -219,7 +242,8 @@ void main() {
           );
         }, overrides: <Type, Generator>{
           FileSystem: () => fs,
-          ProcessManager: () => FakeProcessManager.any(),
+          ProcessManager: FakeProcessManager.empty,
+          Pub: FakePubWithPrimedDeps.new,
           CocoaPods: () => cocoaPods,
           Logger: () => logger,
         });
@@ -244,7 +268,8 @@ void main() {
           expect(cocoaPods.processedPods, isTrue);
         }, overrides: <Type, Generator>{
           FileSystem: () => fs,
-          ProcessManager: () => FakeProcessManager.any(),
+          ProcessManager: FakeProcessManager.empty,
+          Pub: FakePubWithPrimedDeps.new,
           CocoaPods: () => cocoaPods,
         });
 
@@ -262,7 +287,8 @@ void main() {
           expect(cocoaPods.processedPods, isTrue);
         }, overrides: <Type, Generator>{
           FileSystem: () => fs,
-          ProcessManager: () => FakeProcessManager.any(),
+          ProcessManager: FakeProcessManager.empty,
+          Pub: FakePubWithPrimedDeps.new,
           CocoaPods: () => cocoaPods,
         });
 
@@ -279,7 +305,8 @@ void main() {
           expect(cocoaPods.processedPods, isFalse);
         }, overrides: <Type, Generator>{
           FileSystem: () => fs,
-          ProcessManager: () => FakeProcessManager.any(),
+          ProcessManager: FakeProcessManager.empty,
+          Pub: FakePubWithPrimedDeps.new,
           CocoaPods: () => cocoaPods,
         });
 
@@ -295,7 +322,8 @@ void main() {
           expect(cocoaPods.processedPods, isFalse);
         }, overrides: <Type, Generator>{
           FileSystem: () => fs,
-          ProcessManager: () => FakeProcessManager.any(),
+          ProcessManager: FakeProcessManager.empty,
+          Pub: FakePubWithPrimedDeps.new,
           CocoaPods: () => cocoaPods,
         });
       });
@@ -308,7 +336,7 @@ void main() {
             'plugin_one',
             'plugin_two'
           ]);
-          flutterProject.usesSwiftPackageManager = true;
+          flutterProject.macos.usesSwiftPackageManager = true;
           flutterProject.macos.podfile.createSync(recursive: true);
 
           await processPodsIfNeeded(
@@ -319,7 +347,8 @@ void main() {
           expect(cocoaPods.processedPods, isTrue);
         }, overrides: <Type, Generator>{
           FileSystem: () => fs,
-          ProcessManager: () => FakeProcessManager.any(),
+          ProcessManager: FakeProcessManager.empty,
+          Pub: FakePubWithPrimedDeps.new,
           CocoaPods: () => cocoaPods,
         });
 
@@ -330,7 +359,7 @@ void main() {
             'plugin_one',
             'plugin_two'
           ]);
-          flutterProject.usesSwiftPackageManager = true;
+          flutterProject.macos.usesSwiftPackageManager = true;
 
           await processPodsIfNeeded(
             flutterProject.macos,
@@ -340,7 +369,7 @@ void main() {
           expect(cocoaPods.processedPods, isFalse);
         }, overrides: <Type, Generator>{
           FileSystem: () => fs,
-          ProcessManager: () => FakeProcessManager.any(),
+          ProcessManager: FakeProcessManager.empty,
           CocoaPods: () => cocoaPods,
         });
 
@@ -351,7 +380,7 @@ void main() {
             'plugin_one',
             'plugin_two'
           ]);
-          flutterProject.usesSwiftPackageManager = true;
+          flutterProject.macos.usesSwiftPackageManager = true;
           flutterProject.macos.flutterPluginSwiftPackageManifest.createSync(recursive: true);
 
           await processPodsIfNeeded(
@@ -372,7 +401,8 @@ void main() {
           );
         }, overrides: <Type, Generator>{
           FileSystem: () => fs,
-          ProcessManager: () => FakeProcessManager.any(),
+          ProcessManager: FakeProcessManager.empty,
+          Pub: FakePubWithPrimedDeps.new,
           CocoaPods: () => cocoaPods,
           Logger: () => logger,
         });
@@ -391,9 +421,6 @@ class FakeFlutterProject extends Fake implements FlutterProject {
   bool isModule = false;
 
   @override
-  bool usesSwiftPackageManager = false;
-
-  @override
   late FlutterManifest manifest;
 
   @override
@@ -406,10 +433,10 @@ class FakeFlutterProject extends Fake implements FlutterProject {
   late File flutterPluginsDependenciesFile;
 
   @override
-  late IosProject ios;
+  late FakeIosProject ios;
 
   @override
-  late MacOSProject macos;
+  late FakeMacOSProject macos;
 
   @override
   late AndroidProject android;
@@ -459,6 +486,9 @@ class FakeMacOSProject extends Fake implements MacOSProject {
       .childDirectory('Packages')
       .childDirectory('FlutterGeneratedPluginSwiftPackage')
       .childFile('Package.swift');
+
+  @override
+  bool usesSwiftPackageManager = false;
 }
 
 class FakeIosProject extends Fake implements IosProject {
@@ -497,6 +527,9 @@ class FakeIosProject extends Fake implements IosProject {
       .childDirectory('Packages')
       .childDirectory('FlutterGeneratedPluginSwiftPackage')
       .childFile('Package.swift');
+
+  @override
+  bool usesSwiftPackageManager = false;
 }
 
 class FakeAndroidProject extends Fake implements AndroidProject {

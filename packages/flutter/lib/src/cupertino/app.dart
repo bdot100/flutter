@@ -166,7 +166,7 @@ class CupertinoApp extends StatefulWidget {
     this.onNavigationNotification,
     List<NavigatorObserver> this.navigatorObservers = const <NavigatorObserver>[],
     this.builder,
-    this.title = '',
+    this.title,
     this.onGenerateTitle,
     this.color,
     this.locale,
@@ -207,7 +207,7 @@ class CupertinoApp extends StatefulWidget {
     this.routerConfig,
     this.theme,
     this.builder,
-    this.title = '',
+    this.title,
     this.onGenerateTitle,
     this.onNavigationNotification,
     this.color,
@@ -303,7 +303,7 @@ class CupertinoApp extends StatefulWidget {
   /// {@macro flutter.widgets.widgetsApp.title}
   ///
   /// This value is passed unmodified to [WidgetsApp.title].
-  final String title;
+  final String? title;
 
   /// {@macro flutter.widgets.widgetsApp.onGenerateTitle}
   ///
@@ -534,16 +534,49 @@ class _CupertinoAppState extends State<CupertinoApp> {
     ];
   }
 
-  Widget _inspectorSelectButtonBuilder(BuildContext context, VoidCallback onPressed) {
-    return CupertinoButton.filled(
+  Widget _exitWidgetSelectionButtonBuilder(
+    BuildContext context, {
+    required VoidCallback onPressed,
+    required GlobalKey key,
+  }) {
+    return CupertinoButton(
+      key: key,
+      color: _widgetSelectionButtonsBackgroundColor(context),
       padding: EdgeInsets.zero,
       onPressed: onPressed,
-      child: const Icon(
-        CupertinoIcons.search,
+      child: Icon(
+        CupertinoIcons.xmark,
         size: 28.0,
-        color: CupertinoColors.white,
+        color: _widgetSelectionButtonsForegroundColor(context),
+        semanticLabel: 'Exit Select Widget mode.',
       ),
     );
+  }
+
+  Widget _moveExitWidgetSelectionButtonBuilder(
+    BuildContext context, {
+    required VoidCallback onPressed,
+    bool isLeftAligned = true,
+  }) {
+    return CupertinoButton(
+      onPressed: onPressed,
+      padding: EdgeInsets.zero,
+      child: Icon(
+        isLeftAligned ? CupertinoIcons.arrow_right : CupertinoIcons.arrow_left,
+        size: 32.0,
+        color: _widgetSelectionButtonsBackgroundColor(context),
+        semanticLabel:
+            'Move "Exit Select Widget mode" button to the ${isLeftAligned ? 'right' : 'left'}.',
+      ),
+    );
+  }
+
+  Color _widgetSelectionButtonsForegroundColor(BuildContext context) {
+    return CupertinoTheme.of(context).primaryContrastingColor;
+  }
+
+  Color _widgetSelectionButtonsBackgroundColor(BuildContext context) {
+    return CupertinoTheme.of(context).primaryColor;
   }
 
   WidgetsApp _buildWidgetApp(BuildContext context) {
@@ -572,7 +605,9 @@ class _CupertinoAppState extends State<CupertinoApp> {
         showPerformanceOverlay: widget.showPerformanceOverlay,
         showSemanticsDebugger: widget.showSemanticsDebugger,
         debugShowCheckedModeBanner: widget.debugShowCheckedModeBanner,
-        inspectorSelectButtonBuilder: _inspectorSelectButtonBuilder,
+        exitWidgetSelectionButtonBuilder: _exitWidgetSelectionButtonBuilder,
+        moveExitWidgetSelectionButtonBuilder:
+            _moveExitWidgetSelectionButtonBuilder,
         shortcuts: widget.shortcuts,
         actions: widget.actions,
         restorationScopeId: widget.restorationScopeId,
@@ -606,7 +641,9 @@ class _CupertinoAppState extends State<CupertinoApp> {
       showPerformanceOverlay: widget.showPerformanceOverlay,
       showSemanticsDebugger: widget.showSemanticsDebugger,
       debugShowCheckedModeBanner: widget.debugShowCheckedModeBanner,
-      inspectorSelectButtonBuilder: _inspectorSelectButtonBuilder,
+      exitWidgetSelectionButtonBuilder: _exitWidgetSelectionButtonBuilder,
+      moveExitWidgetSelectionButtonBuilder:
+          _moveExitWidgetSelectionButtonBuilder,
       shortcuts: widget.shortcuts,
       actions: widget.actions,
       restorationScopeId: widget.restorationScopeId,

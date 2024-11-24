@@ -152,6 +152,29 @@ void main() {
     expect(licenseStatus, LicensesAccepted.unknown);
   });
 
+  testWithoutContext('licensesAccepted returns LicensesAccepted.unknown if cannot write to sdkmanager', () async {
+    sdk.sdkManagerPath = '/foo/bar/sdkmanager';
+    processManager.addCommand(
+      FakeCommand(
+        command: <String>[sdk.sdkManagerPath!, '--licenses'],
+        stdin: IOSink(ClosedStdinController()),
+      ),
+    );
+    final AndroidLicenseValidator licenseValidator = AndroidLicenseValidator(
+      java: FakeJava(),
+      androidSdk: sdk,
+      processManager: processManager,
+      platform: FakePlatform(environment: <String, String>{'HOME': '/home/me'}),
+      stdio: stdio,
+      logger: BufferLogger.test(),
+      userMessages: UserMessages(),
+    );
+    final LicensesAccepted licenseStatus = await licenseValidator.licensesAccepted;
+
+    expect(licenseStatus, LicensesAccepted.unknown);
+    expect(processManager, hasNoRemainingExpectations);
+  });
+
   testWithoutContext('licensesAccepted handles garbage/no output', () async {
     sdk.sdkManagerPath = '/foo/bar/sdkmanager';
     processManager.addCommand(const FakeCommand(
@@ -613,6 +636,146 @@ Android sdkmanager tool was found, but failed to run
     );
     expect(processManager, hasNoRemainingExpectations);
     expect(stdio.stderr.getAndClear(), contains('UnsupportedClassVersionError'));
+  });
+
+  testWithoutContext('Mentions that JDK is provided by latest Android Studio Installation', () async {
+    // Mock a pass through scenario to reach _checkJavaVersion()
+    sdk
+      ..licensesAvailable = true
+      ..platformToolsAvailable = true
+      ..cmdlineToolsAvailable = true
+      ..directory = fileSystem.directory('/foo/bar')
+      ..sdkManagerPath = '/foo/bar/sdkmanager';
+
+    final ValidationResult validationResult = await AndroidValidator(
+      java: FakeJava(),
+      androidSdk: sdk,
+      logger: logger,
+      platform: FakePlatform(),
+      userMessages: UserMessages()
+    ).validate();
+
+    expect(
+      validationResult.messages.any(
+        (ValidationMessage message) => message.message.contains(
+          'This is the JDK bundled with the latest Android Studio installation on this machine.'
+        )
+      ),
+      true,
+    );
+    expect(
+      validationResult.messages.any(
+        (ValidationMessage message) => message.message.contains(
+          'To manually set the JDK path, use: `flutter config --jdk-dir="path/to/jdk"`.'
+        )
+      ),
+      true,
+    );
+  });
+
+  testWithoutContext("Mentions that JDK is provided by user's JAVA_HOME environment variable", () async {
+    // Mock a pass through scenario to reach _checkJavaVersion()
+    sdk
+      ..licensesAvailable = true
+      ..platformToolsAvailable = true
+      ..cmdlineToolsAvailable = true
+      ..directory = fileSystem.directory('/foo/bar')
+      ..sdkManagerPath = '/foo/bar/sdkmanager';
+
+    final ValidationResult validationResult = await AndroidValidator(
+      java: FakeJava(javaSource: JavaSource.javaHome),
+      androidSdk: sdk,
+      logger: logger,
+      platform: FakePlatform(),
+      userMessages: UserMessages()
+    ).validate();
+
+    expect(
+      validationResult.messages.any(
+        (ValidationMessage message) => message.message.contains(
+          'This JDK is specified by the JAVA_HOME environment variable.'
+        )
+      ),
+      true,
+    );
+    expect(
+      validationResult.messages.any(
+        (ValidationMessage message) => message.message.contains(
+          'To manually set the JDK path, use: `flutter config --jdk-dir="path/to/jdk"`'
+        )
+      ),
+      true,
+    );
+  });
+
+  testWithoutContext('Mentions that path to Java binary is obtained from PATH', () async {
+    // Mock a pass through scenario to reach _checkJavaVersion()
+    sdk
+      ..licensesAvailable = true
+      ..platformToolsAvailable = true
+      ..cmdlineToolsAvailable = true
+      ..directory = fileSystem.directory('/foo/bar')
+      ..sdkManagerPath = '/foo/bar/sdkmanager';
+
+    final ValidationResult validationResult = await AndroidValidator(
+      java: FakeJava(javaSource: JavaSource.path),
+      androidSdk: sdk,
+      logger: logger,
+      platform: FakePlatform(),
+      userMessages: UserMessages()
+    ).validate();
+
+    expect(
+      validationResult.messages.any(
+        (ValidationMessage message) => message.message.contains(
+          'This JDK was found in the system PATH.'
+        )
+      ),
+      true,
+    );
+    expect(
+      validationResult.messages.any(
+        (ValidationMessage message) => message.message.contains(
+          'To manually set the JDK path, use: `flutter config --jdk-dir="path/to/jdk"`.'
+        )
+      ),
+      true,
+    );
+  });
+
+  testWithoutContext('Mentions that JDK is provided by Flutter config', () async {
+    // Mock a pass through scenario to reach _checkJavaVersion()
+    sdk
+      ..licensesAvailable = true
+      ..platformToolsAvailable = true
+      ..cmdlineToolsAvailable = true
+      ..directory = fileSystem.directory('/foo/bar')
+      ..sdkManagerPath = '/foo/bar/sdkmanager';
+
+    final ValidationResult validationResult = await AndroidValidator(
+      java: FakeJava(javaSource: JavaSource.flutterConfig),
+      androidSdk: sdk,
+      logger: logger,
+      platform: FakePlatform(),
+      userMessages: UserMessages()
+    ).validate();
+
+    expect(
+      validationResult.messages.any(
+        (ValidationMessage message) => message.message.contains(
+          'This JDK is specified in your Flutter configuration.'
+        )
+      ),
+      true,
+    );
+    expect(
+      validationResult.messages.any(
+        (ValidationMessage message) => message.message.contains(
+          'To change the current JDK, run: `flutter config --jdk-dir="path/to/jdk"`.'
+        )
+      ),
+      true,
+    );
   });
 }
 

@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'dart:ui';
+library;
+
 import 'dart:async';
 import 'dart:collection' show HashMap;
 import 'dart:convert';
@@ -34,8 +37,20 @@ import 'service_extensions.dart';
 import 'view.dart';
 
 /// Signature for the builder callback used by
-/// [WidgetInspector.selectButtonBuilder].
-typedef InspectorSelectButtonBuilder = Widget Function(BuildContext context, VoidCallback onPressed);
+/// [WidgetInspector.exitWidgetSelectionButtonBuilder].
+typedef ExitWidgetSelectionButtonBuilder = Widget Function(
+  BuildContext context, {
+  required VoidCallback onPressed,
+  required GlobalKey key,
+});
+
+/// Signature for the builder callback used by
+/// [WidgetInspector.moveExitWidgetSelectionButtonBuilder].
+typedef MoveExitWidgetSelectionButtonBuilder = Widget Function(
+  BuildContext context, {
+  required VoidCallback onPressed,
+  bool isLeftAligned,
+});
 
 /// Signature for a method that registers the service extension `callback` with
 /// the given `name`.
@@ -543,11 +558,11 @@ class _ScreenshotPaintingContext extends PaintingContext {
   /// size of [renderBounds] multiplied by [pixelRatio].
   ///
   /// To use [toImage], the render object must have gone through the paint phase
-  /// (i.e. [debugNeedsPaint] must be false).
+  /// (i.e. [RenderObject.debugNeedsPaint] must be false).
   ///
   /// The [pixelRatio] describes the scale between the logical pixels and the
   /// size of the output image. It is independent of the
-  /// [window.devicePixelRatio] for the device, so specifying 1.0 (the default)
+  /// [FlutterView.devicePixelRatio] for the device, so specifying 1.0 (the default)
   /// will give you a 1:1 mapping between logical pixels and the output pixels
   /// in the image.
   ///
@@ -737,11 +752,7 @@ class InspectorReferenceData {
 // Production implementation of [WidgetInspectorService].
 class _WidgetInspectorService with WidgetInspectorService {
   _WidgetInspectorService() {
-    selection.addListener(() {
-      if (selectionChangedCallback != null) {
-        selectionChangedCallback!();
-      }
-    });
+    selection.addListener(() => selectionChangedCallback?.call());
   }
 }
 
@@ -775,13 +786,15 @@ mixin WidgetInspectorService {
   static WidgetInspectorService get instance => _instance;
   static WidgetInspectorService _instance = _WidgetInspectorService();
 
-  /// Whether the inspector is in select mode.
+  /// Enables select mode for the Inspector.
   ///
   /// In select mode, pointer interactions trigger widget selection instead of
   /// normal interactions. Otherwise the previously selected widget is
   /// highlighted but the application can be interacted with normally.
   @visibleForTesting
-  final ValueNotifier<bool> isSelectMode = ValueNotifier<bool>(true);
+  set isSelectMode(bool enabled) {
+    _changeWidgetSelectionMode(enabled);
+  }
 
   @protected
   static set instance(WidgetInspectorService instance) {
@@ -917,7 +930,7 @@ mixin WidgetInspectorService {
   /// `value` reflects the newly updated service extension value.
   ///
   /// This will be called automatically for service extensions registered via
-  /// [registerBoolServiceExtension].
+  /// [BindingBase.registerBoolServiceExtension].
   void _postExtensionStateChangedEvent(String name, Object? value) {
     postEvent(
       'Flutter.ServiceExtensionStateChanged',
@@ -1623,6 +1636,13 @@ mixin WidgetInspectorService {
     }
   }
 
+  /// Changes whether widget selection mode is [enabled].
+  void _changeWidgetSelectionMode(bool enabled) {
+    WidgetsBinding.instance.debugShowWidgetInspectorOverride = enabled;
+    _postExtensionStateChangedEvent(
+        WidgetInspectorServiceExtensions.show.name, enabled);
+  }
+
   /// Returns a DevTools uri linking to a specific element on the inspector page.
   String? _devToolsInspectorUriForElement(Element element) {
     if (activeDevToolsServerAddress != null && connectedVmServiceUri != null) {
@@ -1730,9 +1750,11 @@ mixin WidgetInspectorService {
 
   Map<String, Object?>? _nodeToJson(
     DiagnosticsNode? node,
-    InspectorSerializationDelegate delegate,
+    InspectorSerializationDelegate delegate, {
+    bool fullDetails = true,
+  }
   ) {
-    return node?.toJsonMap(delegate);
+    return node?.toJsonMap(delegate, fullDetails: fullDetails);
   }
 
   bool _isValueCreatedByLocalProject(Object? value) {
@@ -1802,8 +1824,14 @@ mixin WidgetInspectorService {
     List<DiagnosticsNode> nodes,
     InspectorSerializationDelegate delegate, {
     required DiagnosticsNode? parent,
+    bool fullDetails = true,
   }) {
-    return DiagnosticsNode.toJsonList(nodes, parent, delegate);
+    return DiagnosticsNode.toJsonList(
+      nodes,
+      parent,
+      delegate,
+      fullDetails: fullDetails,
+    );
   }
 
   /// Returns a JSON representation of the properties of the [DiagnosticsNode]
@@ -1977,11 +2005,14 @@ mixin WidgetInspectorService {
     final String groupName = parameters['groupName']!;
     final bool isSummaryTree = parameters['isSummaryTree'] == 'true';
     final bool withPreviews = parameters['withPreviews'] == 'true';
+    // If the "fullDetails" parameter is not provided, default to true.
+    final bool fullDetails = parameters['fullDetails'] != 'false';
 
     final Map<String, Object?>? result = _getRootWidgetTreeImpl(
       groupName: groupName,
       isSummaryTree: isSummaryTree,
       withPreviews: withPreviews,
+      fullDetails: fullDetails,
     );
 
     return Future<Map<String, dynamic>>.value(<String, dynamic>{
@@ -1993,6 +2024,7 @@ mixin WidgetInspectorService {
     required String groupName,
     required bool isSummaryTree,
     required bool withPreviews,
+    bool fullDetails = true,
     Map<String, Object>? Function(
             DiagnosticsNode, InspectorSerializationDelegate)?
         addAdditionalPropertiesCallback,
@@ -2033,6 +2065,7 @@ mixin WidgetInspectorService {
             ? combinedAddAdditionalPropertiesCallback
             : null,
       ),
+      fullDetails: fullDetails,
     );
   }
 
@@ -2746,17 +2779,28 @@ class WidgetInspector extends StatefulWidget {
   const WidgetInspector({
     super.key,
     required this.child,
-    required this.selectButtonBuilder,
+    required this.exitWidgetSelectionButtonBuilder,
+    required this.moveExitWidgetSelectionButtonBuilder,
   });
 
   /// The widget that is being inspected.
   final Widget child;
 
-  /// A builder that is called to create the select button.
+  /// A builder that is called to create the exit select-mode button.
+  ///
+  /// The `onPressed` callback and key passed as arguments to the builder should
+  /// be hooked up to the returned widget.
+  final ExitWidgetSelectionButtonBuilder? exitWidgetSelectionButtonBuilder;
+
+  /// A builder that is called to create the button that moves the exit select-
+  /// mode button to the right or left.
   ///
   /// The `onPressed` callback passed as an argument to the builder should be
   /// hooked up to the returned widget.
-  final InspectorSelectButtonBuilder? selectButtonBuilder;
+  ///
+  /// The button UI should respond to the `leftAligned` argument.
+  final MoveExitWidgetSelectionButtonBuilder?
+      moveExitWidgetSelectionButtonBuilder;
 
   @override
   State<WidgetInspector> createState() => _WidgetInspectorState();
@@ -2785,24 +2829,24 @@ class _WidgetInspectorState extends State<WidgetInspector>
 
     WidgetInspectorService.instance.selection
         .addListener(_selectionInformationChanged);
-    WidgetInspectorService.instance.isSelectMode
+    WidgetsBinding.instance.debugShowWidgetInspectorOverrideNotifier
         .addListener(_selectionInformationChanged);
     selection = WidgetInspectorService.instance.selection;
-    isSelectMode = WidgetInspectorService.instance.isSelectMode.value;
+    isSelectMode = WidgetsBinding.instance.debugShowWidgetInspectorOverride;
   }
 
   @override
   void dispose() {
     WidgetInspectorService.instance.selection
         .removeListener(_selectionInformationChanged);
-    WidgetInspectorService.instance.isSelectMode
+    WidgetsBinding.instance.debugShowWidgetInspectorOverrideNotifier
         .removeListener(_selectionInformationChanged);
     super.dispose();
   }
 
   void _selectionInformationChanged() => setState((){
     selection = WidgetInspectorService.instance.selection;
-    isSelectMode = WidgetInspectorService.instance.isSelectMode.value;
+    isSelectMode = WidgetsBinding.instance.debugShowWidgetInspectorOverride;
   });
 
   bool _hitTestHelper(
@@ -2925,22 +2969,13 @@ class _WidgetInspectorState extends State<WidgetInspector>
       _inspectAt(_lastPointerLocation!);
       WidgetInspectorService.instance._sendInspectEvent(selection.current);
     }
-
-    // Only exit select mode if there is a button to return to select mode.
-    if (widget.selectButtonBuilder != null) {
-      WidgetInspectorService.instance.isSelectMode.value = false;
-    }
-  }
-
-  void _handleEnableSelect() {
-      WidgetInspectorService.instance.isSelectMode.value = true;
   }
 
   @override
   Widget build(BuildContext context) {
     // Be careful changing this build method. The _InspectorOverlayLayer
     // assumes the root RenderObject for the WidgetInspector will be
-    // a RenderStack with a _RenderInspectorOverlay as the last child.
+    // a RenderStack containing a _RenderInspectorOverlay as a child.
     return Stack(children: <Widget>[
       GestureDetector(
         onTap: _handleTap,
@@ -2955,13 +2990,14 @@ class _WidgetInspectorState extends State<WidgetInspector>
           child: widget.child,
         ),
       ),
-      if (!isSelectMode && widget.selectButtonBuilder != null)
-        Positioned(
-          left: _kInspectButtonMargin,
-          bottom: _kInspectButtonMargin,
-          child: widget.selectButtonBuilder!(context, _handleEnableSelect),
-        ),
       _InspectorOverlay(selection: selection),
+      if (isSelectMode && widget.exitWidgetSelectionButtonBuilder != null)
+        _ExitWidgetSelectionButtonGroup(
+          exitWidgetSelectionButtonBuilder:
+              widget.exitWidgetSelectionButtonBuilder!,
+          moveExitWidgetSelectionButtonBuilder:
+              widget.moveExitWidgetSelectionButtonBuilder,
+        ),
     ]);
   }
 }
@@ -3417,7 +3453,10 @@ class _InspectorOverlayLayer extends Layer {
     while (current != null) {
       // We found the widget inspector render object.
       if (current is RenderStack
-          && current.lastChild is _RenderInspectorOverlay) {
+          &&
+          current.getChildrenAsList().any(
+                (RenderBox child) => child is _RenderInspectorOverlay,
+              )) {
         return rootRenderObject == current;
       }
       current = current.parent;
@@ -3428,7 +3467,6 @@ class _InspectorOverlayLayer extends Layer {
 
 const double _kScreenEdgeMargin = 10.0;
 const double _kTooltipPadding = 5.0;
-const double _kInspectButtonMargin = 10.0;
 
 /// Interpret pointer up events within with this margin as indicating the
 /// pointer is moving off the device.
@@ -3439,6 +3477,304 @@ const TextStyle _messageStyle = TextStyle(
   fontSize: 10.0,
   height: 1.2,
 );
+
+class _ExitWidgetSelectionButtonGroup extends StatefulWidget {
+  const _ExitWidgetSelectionButtonGroup({
+    required this.exitWidgetSelectionButtonBuilder,
+    required this.moveExitWidgetSelectionButtonBuilder,
+  });
+
+  final ExitWidgetSelectionButtonBuilder exitWidgetSelectionButtonBuilder;
+  final MoveExitWidgetSelectionButtonBuilder?
+      moveExitWidgetSelectionButtonBuilder;
+
+  @override
+  State<_ExitWidgetSelectionButtonGroup> createState() =>
+      _ExitWidgetSelectionButtonGroupState();
+}
+
+class _ExitWidgetSelectionButtonGroupState
+    extends State<_ExitWidgetSelectionButtonGroup> {
+  static const double _kExitWidgetSelectionButtonPadding = 4.0;
+  static const double _kExitWidgetSelectionButtonMargin = 10.0;
+
+  final GlobalKey _exitWidgetSelectionButtonKey = GlobalKey(
+    debugLabel: 'Exit Widget Selection button',
+  );
+
+  String? _tooltipMessage;
+
+  bool _leftAligned = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget? moveExitWidgetSelectionButton =
+        widget.moveExitWidgetSelectionButtonBuilder != null
+            ? Padding(
+                padding: EdgeInsets.only(
+                  left: _leftAligned ? _kExitWidgetSelectionButtonPadding : 0.0,
+                  right:
+                      _leftAligned ? 0.0 : _kExitWidgetSelectionButtonPadding,
+                ),
+                child: _TooltipGestureDetector(
+                  button: widget.moveExitWidgetSelectionButtonBuilder!(
+                    context,
+                    onPressed: () {
+                      _changeButtonGroupAlignment();
+                      _onTooltipHidden();
+                    },
+                    isLeftAligned: _leftAligned,
+                  ),
+                  onTooltipVisible: () {
+                    _changeTooltipMessage(
+                      'Move to the ${_leftAligned ? 'right' : 'left'}',
+                    );
+                  },
+                  onTooltipHidden: _onTooltipHidden,
+                ),
+              )
+            : null;
+
+    final Widget buttonGroup = Stack(
+      alignment: AlignmentDirectional.topCenter,
+      children: <Widget>[
+        CustomPaint(
+          painter: _ExitWidgetSelectionTooltipPainter(
+            tooltipMessage: _tooltipMessage,
+            buttonKey: _exitWidgetSelectionButtonKey,
+            isLeftAligned: _leftAligned,
+          ),
+        ),
+        Row(
+          children: <Widget>[
+            if (!_leftAligned && moveExitWidgetSelectionButton != null)
+              moveExitWidgetSelectionButton,
+            _TooltipGestureDetector(
+              button: widget.exitWidgetSelectionButtonBuilder(
+                context,
+                onPressed: _exitWidgetSelectionMode,
+                key: _exitWidgetSelectionButtonKey,
+              ),
+              onTooltipVisible: () {
+                _changeTooltipMessage('Exit Select Widget mode');
+              },
+              onTooltipHidden: _onTooltipHidden,
+            ),
+            if (_leftAligned && moveExitWidgetSelectionButton != null)
+              moveExitWidgetSelectionButton,
+          ],
+        ),
+      ],
+    );
+
+    return Positioned(
+      left: _leftAligned ? _kExitWidgetSelectionButtonMargin : null,
+      right: _leftAligned ? null : _kExitWidgetSelectionButtonMargin,
+      bottom: _kExitWidgetSelectionButtonMargin,
+      child: buttonGroup,
+    );
+  }
+
+  void _exitWidgetSelectionMode() {
+    WidgetInspectorService.instance._changeWidgetSelectionMode(false);
+  }
+
+  void _changeButtonGroupAlignment() {
+    if (mounted) {
+      setState(() {
+        _leftAligned = !_leftAligned;
+      });
+    }
+  }
+
+  void _onTooltipHidden() {
+    _changeTooltipMessage(null);
+  }
+
+  void _changeTooltipMessage(String? message) {
+    if (mounted) {
+      setState(() {
+        _tooltipMessage = message;
+      });
+    }
+  }
+}
+
+class _TooltipGestureDetector extends StatefulWidget {
+  const _TooltipGestureDetector({
+    required this.button,
+    required this.onTooltipVisible,
+    required this.onTooltipHidden,
+  });
+
+  final Widget button;
+  final void Function() onTooltipVisible;
+  final void Function() onTooltipHidden;
+
+  static const Duration _tooltipShownOnLongPressDuration = Duration(
+    milliseconds: 1500,
+  );
+  static const Duration _tooltipDelayDuration = Duration(
+    milliseconds: 100,
+  );
+
+  @override
+  State<_TooltipGestureDetector> createState() =>
+      _TooltipGestureDetectorState();
+}
+
+class _TooltipGestureDetectorState extends State<_TooltipGestureDetector> {
+  Timer? _tooltipVisibleTimer;
+  Timer? _tooltipHiddenTimer;
+
+  @override
+  void dispose() {
+    _tooltipVisibleTimer?.cancel();
+    _tooltipVisibleTimer = null;
+    _tooltipHiddenTimer?.cancel();
+    _tooltipHiddenTimer = null;
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: AlignmentDirectional.topCenter,
+      children: <Widget>[
+        GestureDetector(
+          onLongPress: () {
+            _tooltipVisibleAfter(_TooltipGestureDetector._tooltipDelayDuration);
+            _tooltipHiddenAfter(
+              _TooltipGestureDetector._tooltipShownOnLongPressDuration +
+                  _TooltipGestureDetector._tooltipDelayDuration,
+            );
+          },
+          child: MouseRegion(
+            onEnter: (_) {
+              _tooltipVisibleAfter(
+                  _TooltipGestureDetector._tooltipDelayDuration);
+            },
+            onExit: (_) {
+              _tooltipHiddenAfter(
+                  _TooltipGestureDetector._tooltipDelayDuration);
+            },
+            child: widget.button,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _tooltipVisibleAfter(Duration duration) {
+    _tooltipVisibilityChangedAfter(duration, isVisible: true);
+  }
+
+  void _tooltipHiddenAfter(Duration duration) {
+    _tooltipVisibilityChangedAfter(duration, isVisible: false);
+  }
+
+  void _tooltipVisibilityChangedAfter(
+    Duration duration, {
+    required bool isVisible,
+  }) {
+    final Timer? timer = isVisible ? _tooltipVisibleTimer : _tooltipHiddenTimer;
+    if (timer?.isActive ?? false) {
+      timer!.cancel();
+    }
+
+    if (isVisible) {
+      _tooltipVisibleTimer = Timer(duration, () {
+        widget.onTooltipVisible();
+      });
+    } else {
+      _tooltipHiddenTimer = Timer(duration, () {
+        widget.onTooltipHidden();
+      });
+    }
+  }
+}
+
+class _ExitWidgetSelectionTooltipPainter extends CustomPainter {
+  _ExitWidgetSelectionTooltipPainter({
+    required this.tooltipMessage,
+    required this.buttonKey,
+    required this.isLeftAligned,
+  });
+
+  final String? tooltipMessage;
+  final GlobalKey buttonKey;
+  final bool isLeftAligned;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Do not paint the tooltip if it is currently hidden.
+    final bool isVisible = tooltipMessage != null;
+    if (!isVisible) {
+      return;
+    }
+
+    // Do not paint the tooltip if the exit select mode button is not rendered.
+    final RenderObject? buttonRenderObject =
+        buttonKey.currentContext?.findRenderObject();
+    if (buttonRenderObject == null) {
+      return;
+    }
+
+    // Define tooltip appearance.
+    const double tooltipPadding = 4.0;
+    const double tooltipSpacing = 6.0;
+
+    final TextPainter tooltipTextPainter = TextPainter()
+      ..maxLines = 1
+      ..ellipsis = '...'
+      ..text = TextSpan(
+        text: tooltipMessage,
+        style: _messageStyle,
+      )
+      ..textDirection = TextDirection.ltr
+      ..layout();
+
+    final Paint tooltipPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = _kTooltipBackgroundColor;
+
+    // Determine tooltip position.
+    final double buttonWidth = buttonRenderObject.paintBounds.width;
+    final Size textSize = tooltipTextPainter.size;
+    final double textWidth = textSize.width;
+    final double textHeight = textSize.height;
+    final double tooltipWidth = textWidth + (tooltipPadding * 2);
+    final double tooltipHeight = textHeight + (tooltipPadding * 2);
+
+    final double tooltipXOffset =
+        isLeftAligned ? 0 - buttonWidth : 0 - (tooltipWidth - buttonWidth);
+    final double tooltipYOffset = 0 - tooltipHeight - tooltipSpacing;
+
+    // Draw tooltip background.
+    canvas.drawRect(
+      Rect.fromLTWH(
+        tooltipXOffset,
+        tooltipYOffset,
+        tooltipWidth,
+        tooltipHeight,
+      ),
+      tooltipPaint,
+    );
+
+    // Draw tooltip text.
+    tooltipTextPainter.paint(
+        canvas,
+        Offset(
+          tooltipXOffset + tooltipPadding,
+          tooltipYOffset + tooltipPadding,
+        ));
+  }
+
+  @override
+  bool shouldRepaint(covariant _ExitWidgetSelectionTooltipPainter oldDelegate) {
+    return tooltipMessage != oldDelegate.tooltipMessage;
+  }
+}
 
 /// Interface for classes that track the source code location the their
 /// constructor was called from.
@@ -3456,7 +3792,9 @@ class _Location {
     required this.file,
     required this.line,
     required this.column,
-    // ignore: unused_element
+    // TODO(srawlins): `unused_element_parameter` is being separated from
+    // `unused_element`. Ignore both names until the separation is complete.
+    // ignore: unused_element, unused_element_parameter
     this.name,
   });
 
@@ -3787,19 +4125,24 @@ class InspectorSerializationDelegate implements DiagnosticsSerializationDelegate
   bool get _interactive => groupName != null;
 
   @override
-  Map<String, Object?> additionalNodeProperties(DiagnosticsNode node) {
+  Map<String, Object?> additionalNodeProperties(
+    DiagnosticsNode node, {
+    bool fullDetails = true,
+  }) {
     final Map<String, Object?> result = <String, Object?>{};
     final Object? value = node.value;
+    if (summaryTree && fullDetails) {
+      result['summaryTree'] = true;
+    }
     if (_interactive) {
       result['valueId'] = service.toId(value, groupName!);
     }
-    if (summaryTree) {
-      result['summaryTree'] = true;
-    }
     final _Location? creationLocation = _getCreationLocation(value);
     if (creationLocation != null) {
-      result['locationId'] = _toLocationId(creationLocation);
-      result['creationLocation'] = creationLocation.toJsonMap();
+      if (fullDetails) {
+        result['locationId'] = _toLocationId(creationLocation);
+        result['creationLocation'] = creationLocation.toJsonMap();
+      }
       if (service._isLocalCreationLocation(creationLocation.file)) {
         _nodesCreatedByLocalProject.add(node);
         result['createdByLocalProject'] = true;

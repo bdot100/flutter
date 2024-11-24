@@ -375,91 +375,6 @@ void main() {
       });
     });
 
-    group('usesSwiftPackageManager', () {
-      testUsingContext('is true when iOS project exists', () async {
-        final MemoryFileSystem fs = MemoryFileSystem.test();
-        final Directory projectDirectory = fs.directory('path');
-        projectDirectory.childDirectory('ios').createSync(recursive: true);
-        final FlutterManifest manifest = FakeFlutterManifest();
-        final FlutterProject project = FlutterProject(projectDirectory, manifest, manifest);
-        expect(project.usesSwiftPackageManager, isTrue);
-      }, overrides: <Type, Generator>{
-        FeatureFlags: () => TestFeatureFlags(isSwiftPackageManagerEnabled: true),
-        XcodeProjectInterpreter: () => FakeXcodeProjectInterpreter(version: Version(15, 0, 0)),
-      });
-
-      testUsingContext('is true when macOS project exists', () async {
-        final MemoryFileSystem fs = MemoryFileSystem.test();
-        final Directory projectDirectory = fs.directory('path');
-        projectDirectory.childDirectory('macos').createSync(recursive: true);
-        final FlutterManifest manifest = FakeFlutterManifest();
-        final FlutterProject project = FlutterProject(projectDirectory, manifest, manifest);
-        expect(project.usesSwiftPackageManager, isTrue);
-      }, overrides: <Type, Generator>{
-        FeatureFlags: () => TestFeatureFlags(isSwiftPackageManagerEnabled: true),
-        XcodeProjectInterpreter: () => FakeXcodeProjectInterpreter(version: Version(15, 0, 0)),
-      });
-
-      testUsingContext('is false when disabled via manifest', () async {
-        final MemoryFileSystem fs = MemoryFileSystem.test();
-        final Directory projectDirectory = fs.directory('path');
-        projectDirectory.childDirectory('ios').createSync(recursive: true);
-        final FlutterManifest manifest = FakeFlutterManifest(disabledSwiftPackageManager: true);
-        final FlutterProject project = FlutterProject(projectDirectory, manifest, manifest);
-        expect(project.usesSwiftPackageManager, isFalse);
-      }, overrides: <Type, Generator>{
-        FeatureFlags: () => TestFeatureFlags(isSwiftPackageManagerEnabled: true),
-        XcodeProjectInterpreter: () => FakeXcodeProjectInterpreter(version: Version(15, 0, 0)),
-      });
-
-      testUsingContext("is false when iOS and macOS project don't exist", () async {
-        final MemoryFileSystem fs = MemoryFileSystem.test();
-        final Directory projectDirectory = fs.directory('path');
-        final FlutterManifest manifest = FakeFlutterManifest();
-        final FlutterProject project = FlutterProject(projectDirectory, manifest, manifest);
-        expect(project.usesSwiftPackageManager, isFalse);
-      }, overrides: <Type, Generator>{
-        FeatureFlags: () => TestFeatureFlags(isSwiftPackageManagerEnabled: true),
-        XcodeProjectInterpreter: () => FakeXcodeProjectInterpreter(version: Version(15, 0, 0)),
-      });
-
-      testUsingContext('is false when Xcode is less than 15', () async {
-        final MemoryFileSystem fs = MemoryFileSystem.test();
-        final Directory projectDirectory = fs.directory('path');
-        projectDirectory.childDirectory('ios').createSync(recursive: true);
-        final FlutterManifest manifest = FakeFlutterManifest();
-        final FlutterProject project = FlutterProject(projectDirectory, manifest, manifest);
-        expect(project.usesSwiftPackageManager, isFalse);
-      }, overrides: <Type, Generator>{
-        FeatureFlags: () => TestFeatureFlags(isSwiftPackageManagerEnabled: true),
-        XcodeProjectInterpreter: () => FakeXcodeProjectInterpreter(version: Version(14, 0, 0)),
-      });
-
-      testUsingContext('is false when Swift Package Manager feature is not enabled', () async {
-        final MemoryFileSystem fs = MemoryFileSystem.test();
-        final Directory projectDirectory = fs.directory('path');
-        projectDirectory.childDirectory('ios').createSync(recursive: true);
-        final FlutterManifest manifest = FakeFlutterManifest();
-        final FlutterProject project = FlutterProject(projectDirectory, manifest, manifest);
-        expect(project.usesSwiftPackageManager, isFalse);
-      }, overrides: <Type, Generator>{
-        FeatureFlags: () => TestFeatureFlags(),
-        XcodeProjectInterpreter: () => FakeXcodeProjectInterpreter(version: Version(15, 0, 0)),
-      });
-
-      testUsingContext('is false when project is a module', () async {
-        final MemoryFileSystem fs = MemoryFileSystem.test();
-        final Directory projectDirectory = fs.directory('path');
-        projectDirectory.childDirectory('ios').createSync(recursive: true);
-        final FlutterManifest manifest = FakeFlutterManifest(isModule: true);
-        final FlutterProject project = FlutterProject(projectDirectory, manifest, manifest);
-        expect(project.usesSwiftPackageManager, isFalse);
-      }, overrides: <Type, Generator>{
-        FeatureFlags: () => TestFeatureFlags(isSwiftPackageManagerEnabled: true),
-        XcodeProjectInterpreter: () => FakeXcodeProjectInterpreter(version: Version(15, 0, 0)),
-      });
-    });
-
     group('java gradle agp compatibility', () {
       Future<FlutterProject?> configureGradleAgpForTest({
         required String gradleV,
@@ -920,6 +835,7 @@ plugins {
             <String>[
               'applinks:example.com',
               'applinks:example2.com',
+              'applinks:example3.com?mode=developer',
             ],
           );
           final String outputFilePath = await project.ios.outputsUniversalLinkSettings(
@@ -935,6 +851,7 @@ plugins {
               <String>[
                 'example.com',
                 'example2.com',
+                'example3.com',
               ],
             ),
           );
@@ -1188,9 +1105,9 @@ plugins {
         mockXcodeProjectInterpreter = FakeXcodeProjectInterpreter();
       });
 
-      testUsingContext('app product name defaults to Runner.app', () async {
+      testUsingContext('app product name defaults to Runner', () async {
         final FlutterProject project = await someProject();
-        expect(await project.ios.hostAppBundleName(null), 'Runner.app');
+        expect(await project.ios.productName(null), 'Runner');
       }, overrides: <Type, Generator>{
         FileSystem: () => fs,
         ProcessManager: () => FakeProcessManager.any(),
@@ -1202,11 +1119,11 @@ plugins {
         project.ios.xcodeProject.createSync();
         const XcodeProjectBuildContext buildContext = XcodeProjectBuildContext(scheme: 'Runner');
         mockXcodeProjectInterpreter.buildSettingsByBuildContext[buildContext] = <String, String>{
-          'FULL_PRODUCT_NAME': 'My App.app',
+          'PRODUCT_NAME': 'My App',
         };
         mockXcodeProjectInterpreter.xcodeProjectInfo = XcodeProjectInfo(<String>[], <String>[], <String>['Runner'], logger);
 
-        expect(await project.ios.hostAppBundleName(null), 'My App.app');
+        expect(await project.ios.productName(null), 'My App');
       }, overrides: <Type, Generator>{
         FileSystem: () => fs,
         ProcessManager: () => FakeProcessManager.any(),
@@ -1458,7 +1375,7 @@ plugins {
         const XcodeProjectBuildContext watchBuildContext = XcodeProjectBuildContext(
           scheme: 'WatchScheme',
           deviceId: '123',
-          isWatch: true,
+          sdk: XcodeSdk.WatchOS,
         );
         mockXcodeProjectInterpreter.buildSettingsByBuildContext[watchBuildContext] = <String, String>{
           'INFOPLIST_KEY_WKCompanionAppBundleIdentifier': 'io.flutter.someProject',
@@ -1498,7 +1415,7 @@ plugins {
         const XcodeProjectBuildContext watchBuildContext = XcodeProjectBuildContext(
           scheme: 'WatchScheme',
           deviceId: '123',
-          isWatch: true,
+          sdk: XcodeSdk.WatchOS,
         );
         mockXcodeProjectInterpreter.buildSettingsByBuildContext[watchBuildContext] = <String, String>{
           IosProject.kProductBundleIdKey: 'io.flutter.someProject',
@@ -1893,17 +1810,4 @@ class FakeAndroidSdkWithDir extends Fake implements AndroidSdk {
 
   @override
   Directory get directory => _directory;
-}
-
-class FakeFlutterManifest extends Fake implements FlutterManifest {
-  FakeFlutterManifest({
-    this.disabledSwiftPackageManager = false,
-    this.isModule = false,
-  });
-
-  @override
-  bool disabledSwiftPackageManager;
-
-  @override
-  bool isModule;
 }

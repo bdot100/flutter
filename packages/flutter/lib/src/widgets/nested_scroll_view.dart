@@ -2,6 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'package:flutter/material.dart';
+///
+/// @docImport 'page_storage.dart';
+/// @docImport 'safe_area.dart';
+/// @docImport 'scrollable.dart';
+library;
+
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -36,7 +43,7 @@ typedef NestedScrollViewHeaderSliversBuilder = List<Widget> Function(BuildContex
 ///
 /// The most common use case for this widget is a scrollable view with a
 /// flexible [SliverAppBar] containing a [TabBar] in the header (built by
-/// [headerSliverBuilder], and with a [TabBarView] in the [body], such that the
+/// [headerSliverBuilder]), and with a [TabBarView] in the [body], such that the
 /// scrollable view's contents vary based on which tab is visible.
 ///
 /// ## Motivation
@@ -306,12 +313,7 @@ class NestedScrollView extends StatefulWidget {
   /// {@macro flutter.widgets.scrollable.restorationId}
   final String? restorationId;
 
-  /// {@macro flutter.widgets.shadow.scrollBehavior}
-  ///
-  /// [ScrollBehavior]s also provide [ScrollPhysics]. If an explicit
-  /// [ScrollPhysics] is provided in [physics], it will take precedence,
-  /// followed by [scrollBehavior], and then the inherited ancestor
-  /// [ScrollBehavior].
+  /// {@macro flutter.widgets.scrollable.scrollBehavior}
   ///
   /// The [ScrollBehavior] of the inherited [ScrollConfiguration] will be
   /// modified by default to not apply a [Scrollbar]. This is because the
@@ -418,6 +420,7 @@ class NestedScrollViewState extends State<NestedScrollView> {
 
   _NestedScrollCoordinator? _coordinator;
 
+  @protected
   @override
   void initState() {
     super.initState();
@@ -429,12 +432,14 @@ class NestedScrollViewState extends State<NestedScrollView> {
     );
   }
 
+  @protected
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _coordinator!.setParent(widget.controller);
   }
 
+  @protected
   @override
   void didUpdateWidget(NestedScrollView oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -443,6 +448,7 @@ class NestedScrollViewState extends State<NestedScrollView> {
     }
   }
 
+  @protected
   @override
   void dispose() {
     _coordinator!.dispose();
@@ -469,6 +475,7 @@ class NestedScrollViewState extends State<NestedScrollView> {
     }
   }
 
+  @protected
   @override
   Widget build(BuildContext context) {
     final ScrollPhysics scrollPhysics = widget.physics?.applyTo(const ClampingScrollPhysics())
@@ -1313,7 +1320,12 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
       forcePixels(actualNewPixels);
       didUpdateScrollPositionBy(offset);
     }
-    return delta + offset;
+
+    final double result = delta + offset;
+    if (result.abs() < precisionErrorTolerance) {
+      return 0.0;
+    }
+    return result;
   }
 
   // Returns the overscroll.

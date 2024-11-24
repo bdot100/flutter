@@ -1790,7 +1790,7 @@ void main() {
     expect(
       find.ancestor(of: find.byType(Table), matching: find.byType(Container)),
       paints..rect(
-        rect: const Rect.fromLTRB(0.0, 0.0, width, height),
+        rect: const Rect.fromLTRB(borderVertical / 2, borderHorizontal / 2, width - borderVertical / 2, height - borderHorizontal / 2),
         color: backgroundColor,
       ),
     );
@@ -2416,6 +2416,92 @@ void main() {
 
     headerCenter = tester.getCenter(find.text('Header'));
     expect(headerCenter.dx, equals(400));
+  });
+
+  testWidgets('DataTable with custom column widths - checkbox', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Material(
+          child: SizedBox(
+            width: 500,
+            child: DataTable(
+              columns: const <DataColumn>[
+                DataColumn(
+                  label: Text('Flex Numeric'),
+                  columnWidth: FlexColumnWidth(),
+                  numeric: true,
+                ),
+                DataColumn(
+                  label: Text('Numeric'),
+                  numeric: true,
+                ),
+                DataColumn(
+                  label: Text('Text'),
+                ),
+              ],
+              rows: <DataRow>[
+                DataRow(
+                  onSelectChanged: (bool? value) {},
+                  cells: const <DataCell>[
+                    DataCell(Text('1')),
+                    DataCell(Text('1')),
+                    DataCell(Text('D')),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      )
+    );
+
+    final Table table = tester.widget(find.byType(Table));
+    expect(table.columnWidths![0], isA<FixedColumnWidth>()); // Checkbox column
+    expect(table.columnWidths![1], const FlexColumnWidth());
+    expect(table.columnWidths![2], const IntrinsicColumnWidth());
+    expect(table.columnWidths![3], const IntrinsicColumnWidth(flex: 1));
+  });
+
+  testWidgets('DataTable with custom column widths - no checkbox', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Material(
+          child: SizedBox(
+            width: 500,
+            child: DataTable(
+              columns: const <DataColumn>[
+                DataColumn(
+                  label: Text('Flex Numeric'),
+                  columnWidth: FlexColumnWidth(),
+                  numeric: true,
+                ),
+                DataColumn(
+                  label: Text('Numeric'),
+                  numeric: true,
+                ),
+                DataColumn(
+                  label: Text('Text'),
+                ),
+              ],
+              rows: const <DataRow>[
+                DataRow(
+                  cells: <DataCell>[
+                    DataCell(Text('1')),
+                    DataCell(Text('1')),
+                    DataCell(Text('D')),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      )
+    );
+
+    final Table table = tester.widget(find.byType(Table));
+    expect(table.columnWidths![0], const FlexColumnWidth());
+    expect(table.columnWidths![1], const IntrinsicColumnWidth());
+    expect(table.columnWidths![2], const IntrinsicColumnWidth(flex: 1));
   });
 }
 

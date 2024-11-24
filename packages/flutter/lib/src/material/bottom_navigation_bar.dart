@@ -2,6 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'color_scheme.dart';
+/// @docImport 'navigation_bar.dart';
+/// @docImport 'scaffold.dart';
+library;
+
 import 'dart:collection' show Queue;
 import 'dart:math' as math;
 
@@ -372,18 +377,12 @@ class BottomNavigationBar extends StatefulWidget {
   /// The cursor for a mouse pointer when it enters or is hovering over the
   /// items.
   ///
-  /// If [mouseCursor] is a [MaterialStateProperty<MouseCursor>],
-  /// [MaterialStateProperty.resolve] is used for the following [MaterialState]s:
-  ///
-  ///  * [MaterialState.selected].
+  /// If [mouseCursor] is a [WidgetStateMouseCursor], its `resolve` method
+  /// can define the appearance of the cursor depending on whether
+  /// [WidgetState.selected] is active.
   ///
   /// If null, then the value of [BottomNavigationBarThemeData.mouseCursor] is used. If
-  /// that is also null, then [MaterialStateMouseCursor.clickable] is used.
-  ///
-  /// See also:
-  ///
-  ///  * [MaterialStateMouseCursor], which can be used to create a [MouseCursor]
-  ///    that is also a [MaterialStateProperty<MouseCursor>].
+  /// that is also null, then [WidgetStateMouseCursor.clickable] is used.
   final MouseCursor? mouseCursor;
 
   /// Whether detected gestures should provide acoustic and/or haptic feedback.
@@ -859,12 +858,10 @@ class _BottomNavigationBarState extends State<BottomNavigationBar> with TickerPr
   //
   // Unselected labels are shown by default for [BottomNavigationBarType.fixed],
   // and hidden by default for [BottomNavigationBarType.shifting].
-  bool get _defaultShowUnselected {
-    return switch (_effectiveType) {
-      BottomNavigationBarType.shifting => false,
-      BottomNavigationBarType.fixed    => true,
-    };
-  }
+  bool get _defaultShowUnselected => switch (_effectiveType) {
+    BottomNavigationBarType.shifting => false,
+    BottomNavigationBarType.fixed    => true,
+  };
 
   @override
   void initState() {

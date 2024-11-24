@@ -34,6 +34,23 @@ void main() {
     expect(tester.getCenter(find.text('Title')).dx, 400.0);
   });
 
+  testWidgets('largeTitle is aligned with asymmetrical actions', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const CupertinoApp(
+        home: CupertinoNavigationBar.large(
+          leading: CupertinoButton(
+            onPressed: null,
+            child: Text('Something'),
+          ),
+          largeTitle: Text('Title'),
+        ),
+      ),
+    );
+
+    expect(tester.getCenter(find.text('Title')).dx, greaterThan(110.0));
+    expect(tester.getCenter(find.text('Title')).dx, lessThan(111.0));
+  });
+
   testWidgets('Middle still in center with back button', (WidgetTester tester) async {
     await tester.pumpWidget(
       const CupertinoApp(
@@ -58,46 +75,154 @@ void main() {
     expect(tester.getCenter(find.text('Page 2')).dx, 400.0);
   });
 
+  testWidgets('largeTitle still aligned with back button', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const CupertinoApp(
+        home: CupertinoNavigationBar.large(
+          largeTitle: Text('Title'),
+        ),
+      ),
+    );
+
+    tester.state<NavigatorState>(find.byType(Navigator)).push(CupertinoPageRoute<void>(
+      builder: (BuildContext context) {
+        return const CupertinoNavigationBar.large(
+          largeTitle: Text('Page 2'),
+        );
+      },
+    ));
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(tester.getCenter(find.text('Page 2')).dx, greaterThan(129.0));
+    expect(tester.getCenter(find.text('Page 2')).dx, lessThan(130.0));
+  });
+
   testWidgets('Opaque background does not add blur effects, non-opaque background adds blur effects', (WidgetTester tester) async {
     const CupertinoDynamicColor background = CupertinoDynamicColor.withBrightness(
       color: Color(0xFFE5E5E5),
       darkColor: Color(0xF3E5E5E5),
     );
 
+    final ScrollController scrollController = ScrollController();
+    addTearDown(scrollController.dispose);
+
     await tester.pumpWidget(
-      const CupertinoApp(
-        theme: CupertinoThemeData(brightness: Brightness.light),
-        home: CupertinoNavigationBar(
-          middle: Text('Title'),
-          backgroundColor: background,
+      CupertinoApp(
+        theme: const CupertinoThemeData(brightness: Brightness.light),
+        home: CupertinoPageScaffold(
+          navigationBar: const CupertinoNavigationBar(
+            middle: Text('Title'),
+            backgroundColor: background,
+          ),
+          child: ListView(
+            controller: scrollController,
+            children: const <Widget>[
+              Placeholder(),
+            ],
+          ),
         ),
       ),
     );
-    expect(find.byType(BackdropFilter), findsNothing);
+
+    scrollController.jumpTo(100.0);
+    await tester.pump();
+
+    expect(
+      tester.widget(find.byType(BackdropFilter)),
+      isA<BackdropFilter>().having((BackdropFilter filter) => filter.enabled, 'filter enabled', false),
+    );
     expect(find.byType(CupertinoNavigationBar), paints..rect(color: background.color));
 
     await tester.pumpWidget(
-      const CupertinoApp(
-        theme: CupertinoThemeData(brightness: Brightness.dark),
-        home: CupertinoNavigationBar(
-          middle: Text('Title'),
-          backgroundColor: background,
+      CupertinoApp(
+        theme: const CupertinoThemeData(brightness: Brightness.dark),
+        home: CupertinoPageScaffold(
+          navigationBar: const CupertinoNavigationBar(
+            middle: Text('Title'),
+            backgroundColor: background,
+          ),
+          child: ListView(
+            controller: scrollController,
+            children: const <Widget>[
+              Placeholder(),
+            ],
+          ),
         ),
       ),
     );
-    expect(find.byType(BackdropFilter), findsOneWidget);
+
+    scrollController.jumpTo(100.0);
+    await tester.pump();
+
+    expect(
+      tester.widget(find.byType(BackdropFilter)),
+      isA<BackdropFilter>().having((BackdropFilter f) => f.enabled, 'filter enabled', true),
+    );
     expect(find.byType(CupertinoNavigationBar), paints..rect(color: background.darkColor));
   });
 
-  testWidgets('Non-opaque background adds blur effects', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const CupertinoApp(
-        home: CupertinoNavigationBar(
-          middle: Text('Title'),
+  testWidgets("Background doesn't add blur effect when no content is scrolled under", (WidgetTester test) async {
+    final ScrollController scrollController = ScrollController();
+    addTearDown(scrollController.dispose);
+
+    await test.pumpWidget(
+      CupertinoApp(
+        theme: const CupertinoThemeData(brightness: Brightness.light),
+        home: CupertinoPageScaffold(
+          navigationBar: const CupertinoNavigationBar(
+            middle: Text('Title'),
+          ),
+          child: ListView(
+            controller: scrollController,
+            children: const <Widget>[
+              Placeholder(),
+            ],
+          ),
         ),
       ),
     );
-    expect(find.byType(BackdropFilter), findsOneWidget);
+
+    expect(
+      test.widget(find.byType(BackdropFilter)),
+      isA<BackdropFilter>().having((BackdropFilter filter) => filter.enabled, 'filter enabled', false),
+    );
+
+    scrollController.jumpTo(100.0);
+    await test.pump();
+
+    expect(
+      test.widget(find.byType(BackdropFilter)),
+      isA<BackdropFilter>().having((BackdropFilter filter) => filter.enabled, 'filter enabled', true),
+    );
+  });
+
+  testWidgets('Blur affect is disabled when enableBackgroundFilterBlur is false', (WidgetTester test) async {
+    await test.pumpWidget(
+       CupertinoApp(
+        theme: const CupertinoThemeData(brightness: Brightness.light),
+        home:  CupertinoPageScaffold(
+          navigationBar: CupertinoNavigationBar(
+            backgroundColor: const Color(0xFFFFFFFF).withOpacity(0),
+            middle: const Text('Title'),
+            automaticBackgroundVisibility: false,
+            enableBackgroundFilterBlur: false,
+          ),
+          child: const Column(
+            children: <Widget>[
+              Placeholder(),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      test.widget(find.byType(BackdropFilter)),
+      isA<BackdropFilter>().having(
+          (BackdropFilter filter) => filter.enabled, 'filter enabled', false),
+    );
   });
 
   testWidgets('Nav bar displays correctly', (WidgetTester tester) async {
@@ -781,6 +906,7 @@ void main() {
     await tester.pumpWidget(
       const CupertinoApp(
         home: CupertinoNavigationBar(
+          automaticBackgroundVisibility: false,
           middle: Text('Title'),
           border: Border(
             bottom: BorderSide(
@@ -926,6 +1052,27 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('Large CupertinoNavigationBar has semantics', (WidgetTester tester) async {
+    final SemanticsTester semantics = SemanticsTester(tester);
+
+    await tester.pumpWidget(CupertinoApp(
+      home: CupertinoPageScaffold(
+        navigationBar: const CupertinoNavigationBar.large(
+          largeTitle: Text('Fixed Title'),
+        ),
+        child: Container(),
+      ),
+    ));
+
+    expect(semantics.nodesWith(
+      label: 'Fixed Title',
+      flags: <SemanticsFlag>[SemanticsFlag.isHeader],
+      textDirection: TextDirection.ltr,
+    ), hasLength(1));
+
+    semantics.dispose();
+  });
+
   testWidgets('Border can be overridden in sliver nav bar', (WidgetTester tester) async {
     await tester.pumpWidget(
       const CupertinoApp(
@@ -933,6 +1080,7 @@ void main() {
           child: CustomScrollView(
             slivers: <Widget>[
               CupertinoSliverNavigationBar(
+                automaticBackgroundVisibility: false,
                 largeTitle: Text('Large Title'),
                 border: Border(
                   bottom: BorderSide(
@@ -964,57 +1112,329 @@ void main() {
     expect(bottom.color, const Color(0xFFAABBCC));
   });
 
-  testWidgets(
-    'Standard title golden',
-    (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const CupertinoApp(
-          home: RepaintBoundary(
-            child: CupertinoPageScaffold(
-              navigationBar: CupertinoNavigationBar(
-                middle: Text('Bling bling'),
+  testWidgets('Static standard title golden', (WidgetTester tester) async {
+    await tester.pumpWidget(const CupertinoApp(
+        home: RepaintBoundary(
+          child: CupertinoPageScaffold(
+            navigationBar: CupertinoNavigationBar(
+              middle: Text('Bling bling'),
+            ),
+            child: Center(),
+          ),
+        ),
+    ));
+
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('nav_bar_test.standard_title.png'),
+    );
+  });
+
+  testWidgets('Static large title golden', (WidgetTester tester) async {
+    await tester.pumpWidget(const CupertinoApp(
+      home: RepaintBoundary(
+        child: CupertinoPageScaffold(
+          navigationBar: CupertinoNavigationBar.large(
+            largeTitle: Text('Bling bling'),
+          ),
+          child: Center(),
+        ),
+      ),
+    ));
+
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('nav_bar_test.large_title.png'),
+    );
+  });
+
+  testWidgets('Sliver large title golden', (WidgetTester tester) async {
+    await tester.pumpWidget(CupertinoApp(
+      home: RepaintBoundary(
+        child: CupertinoPageScaffold(
+          child: CustomScrollView(
+            slivers: <Widget>[
+              const CupertinoSliverNavigationBar(
+                largeTitle: Text('Bling bling'),
               ),
-              child: Center(),
+              SliverToBoxAdapter(
+                child: Container(
+                  height: 1200.0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ));
+
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('nav_bar_test.sliver.large_title.png'),
+    );
+  });
+
+  testWidgets('Sliver middle title golden', (WidgetTester tester) async {
+    await tester.pumpWidget(CupertinoApp(
+      home: RepaintBoundary(
+        child: CupertinoPageScaffold(
+          child: CustomScrollView(
+            slivers: <Widget>[
+              const CupertinoSliverNavigationBar(
+                middle: Text('Bling bling'),
+                largeTitle: Text('Bling bling'),
+              ),
+              SliverToBoxAdapter(
+                child: Container(
+                  height: 1200.0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ));
+    await tester.drag(find.byType(Scrollable), const Offset(0.0, -250.0));
+    await tester.pump();
+
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('nav_bar_test.sliver.middle_title.png'),
+    );
+  });
+
+  testWidgets(
+    'Nav bar background is transparent if `automaticBackgroundVisibility` is true and has no content scrolled under it',
+    (WidgetTester tester) async {
+      final ScrollController scrollController = ScrollController();
+      addTearDown(scrollController.dispose);
+
+      await tester.pumpWidget(
+        CupertinoApp(
+          home: CupertinoPageScaffold(
+            backgroundColor: const Color(0xFFFFFFFF),
+            navigationBar: const CupertinoNavigationBar(
+              backgroundColor: Color(0xFFE5E5E5),
+              border: Border(
+                bottom: BorderSide(
+                  color: Color(0xFFAABBCC),
+                  width: 0.0,
+                ),
+              ),
+              middle: Text('Title'),
+            ),
+            child: ListView(
+              controller: scrollController,
+              children: const <Widget>[
+                Placeholder(),
+              ],
             ),
           ),
         ),
       );
 
-      await expectLater(
-        find.byType(RepaintBoundary).last,
-        matchesGoldenFile('nav_bar_test.standard_title.png'),
-      );
+      expect(scrollController.offset, 0.0);
+
+      final DecoratedBox decoratedBox = tester.widgetList(find.descendant(
+        of: find.byType(CupertinoNavigationBar),
+        matching: find.byType(DecoratedBox),
+      )).first as DecoratedBox;
+      expect(decoratedBox.decoration.runtimeType, BoxDecoration);
+
+      final BoxDecoration decoration = decoratedBox.decoration as BoxDecoration;
+      final BorderSide side = decoration.border!.bottom;
+      expect(side.color.opacity, 0.0);
+
+      // Appears transparent since the background color is the same as the scaffold.
+      expect(find.byType(CupertinoNavigationBar), paints..rect(color: const Color(0xFFFFFFFF)));
+
+      scrollController.jumpTo(100.0);
+      await tester.pump();
+
+      final DecoratedBox decoratedBoxAfterScroll = tester.widgetList(find.descendant(
+        of: find.byType(CupertinoNavigationBar),
+        matching: find.byType(DecoratedBox),
+      )).first as DecoratedBox;
+      expect(decoratedBoxAfterScroll.decoration.runtimeType, BoxDecoration);
+
+      final BorderSide borderAfterScroll = (decoratedBoxAfterScroll.decoration as BoxDecoration).border!.bottom;
+
+      expect(borderAfterScroll.color.opacity, 1.0);
+
+      expect(find.byType(CupertinoNavigationBar), paints..rect(color: const Color(0xFFE5E5E5)));
     },
   );
 
   testWidgets(
-    'Large title golden',
+    'automaticBackgroundVisibility parameter has no effect if nav bar is not a child of CupertinoPageScaffold',
     (WidgetTester tester) async {
       await tester.pumpWidget(
+        const CupertinoApp(
+          home: CupertinoNavigationBar(
+            backgroundColor: Color(0xFFE5E5E5),
+            border: Border(
+              bottom: BorderSide(
+                color: Color(0xFFAABBCC),
+                width: 0.0,
+              ),
+            ),
+            middle: Text('Title'),
+          ),
+        ),
+      );
+
+      final DecoratedBox decoratedBox = tester.widgetList(find.descendant(
+        of: find.byType(CupertinoNavigationBar),
+        matching: find.byType(DecoratedBox),
+      )).first as DecoratedBox;
+      expect(decoratedBox.decoration.runtimeType, BoxDecoration);
+
+      final BoxDecoration decoration = decoratedBox.decoration as BoxDecoration;
+      final BorderSide side = decoration.border!.bottom;
+      expect(side.color, const Color(0xFFAABBCC));
+
+      expect(find.byType(CupertinoNavigationBar), paints..rect(color: const Color(0xFFE5E5E5)));
+    },
+  );
+
+  testWidgets(
+    'Nav bar background is always visible if `automaticBackgroundVisibility` is false',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const CupertinoApp(
+          home: CupertinoPageScaffold(
+            navigationBar: CupertinoNavigationBar(
+              automaticBackgroundVisibility: false,
+              backgroundColor: Color(0xFFE5E5E5),
+              border: Border(
+                bottom: BorderSide(
+                  color: Color(0xFFAABBCC),
+                  width: 0.0,
+                ),
+              ),
+              middle: Text('Title'),
+            ),
+            child: Placeholder(),
+          ),
+        ),
+      );
+
+      DecoratedBox decoratedBox = tester.widgetList(find.descendant(
+        of: find.byType(CupertinoNavigationBar),
+        matching: find.byType(DecoratedBox),
+      )).first as DecoratedBox;
+      expect(decoratedBox.decoration.runtimeType, BoxDecoration);
+
+      BoxDecoration decoration = decoratedBox.decoration as BoxDecoration;
+      BorderSide side = decoration.border!.bottom;
+      expect(side.color, const Color(0xFFAABBCC));
+
+      expect(find.byType(CupertinoNavigationBar), paints..rect(color: const Color(0xFFE5E5E5)));
+
+      await tester.pumpWidget(
         CupertinoApp(
-          home: RepaintBoundary(
-            child: CupertinoPageScaffold(
-              child: CustomScrollView(
-                slivers: <Widget>[
-                  const CupertinoSliverNavigationBar(
-                    largeTitle: Text('Bling bling'),
-                  ),
-                  SliverToBoxAdapter(
-                    child: Container(
-                      height: 1200.0,
+          home: CupertinoPageScaffold(
+            child: CustomScrollView(
+              slivers: <Widget>[
+                const CupertinoSliverNavigationBar(
+                  automaticBackgroundVisibility: false,
+                  backgroundColor: Color(0xFFE5E5E5),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Color(0xFFAABBCC),
+                      width: 0.0,
                     ),
                   ),
-                ],
-              ),
+                  largeTitle: Text('Title'),
+                ),
+                SliverToBoxAdapter(
+                  child: Container(
+                    height: 1200.0,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
       );
 
-      await expectLater(
-        find.byType(RepaintBoundary).last,
-        matchesGoldenFile('nav_bar_test.large_title.png'),
+      decoratedBox = tester.widgetList(find.descendant(
+        of: find.byType(CupertinoSliverNavigationBar),
+        matching: find.byType(DecoratedBox),
+      )).first as DecoratedBox;
+      expect(decoratedBox.decoration.runtimeType, BoxDecoration);
+
+      decoration = decoratedBox.decoration as BoxDecoration;
+      side = decoration.border!.bottom;
+      expect(side.color, const Color(0xFFAABBCC));
+
+      expect(find.byType(CupertinoSliverNavigationBar), paints..rect(color: const Color(0xFFE5E5E5)));
+    },
+  );
+
+  testWidgets(
+    'CupertinoSliverNavigationBar background is transparent if `automaticBackgroundVisibility` is true and has no content scrolled under it',
+    (WidgetTester tester) async {
+      final ScrollController scrollController = ScrollController();
+      addTearDown(scrollController.dispose);
+
+      await tester.pumpWidget(
+        CupertinoApp(
+          home: CupertinoPageScaffold(
+            backgroundColor: const Color(0xFFFFFFFF),
+            child: CustomScrollView(
+              controller: scrollController,
+              slivers: <Widget>[
+                const CupertinoSliverNavigationBar(
+                  backgroundColor: Color(0xFFE5E5E5),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Color(0xFFAABBCC),
+                      width: 0.0,
+                    ),
+                  ),
+                  largeTitle: Text('Title'),
+                ),
+                SliverToBoxAdapter(
+                  child: Container(
+                    height: 1200.0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
+
+      expect(scrollController.offset, 0.0);
+
+      final DecoratedBox decoratedBox = tester.widgetList(find.descendant(
+        of: find.byType(CupertinoSliverNavigationBar),
+        matching: find.byType(DecoratedBox),
+      )).first as DecoratedBox;
+      expect(decoratedBox.decoration.runtimeType, BoxDecoration);
+
+      final BoxDecoration decoration = decoratedBox.decoration as BoxDecoration;
+      final BorderSide side = decoration.border!.bottom;
+      expect(side.color.opacity, 0.0);
+
+      // Appears transparent since the background color is the same as the scaffold.
+      expect(find.byType(CupertinoSliverNavigationBar), paints..rect(color: const Color(0xFFFFFFFF)));
+
+      scrollController.jumpTo(400.0);
+      await tester.pump();
+
+      final DecoratedBox decoratedBoxAfterScroll = tester.widgetList(find.descendant(
+        of: find.byType(CupertinoSliverNavigationBar),
+        matching: find.byType(DecoratedBox),
+      )).first as DecoratedBox;
+      expect(decoratedBoxAfterScroll.decoration.runtimeType, BoxDecoration);
+
+      final BorderSide borderAfterScroll = (decoratedBoxAfterScroll.decoration as BoxDecoration).border!.bottom;
+
+      expect(borderAfterScroll.color.opacity, 1.0);
+
+      expect(find.byType(CupertinoSliverNavigationBar), paints..rect(color: const Color(0xFFE5E5E5)));
     },
   );
 
@@ -1567,6 +1987,454 @@ void main() {
       expect(largeTitleFinder.hitTestable(), findsOneWidget);
     },
   );
+
+  testWidgets('NavigationBarBottomMode.automatic mode for bottom', (WidgetTester tester) async {
+    const double persistentHeight = 44.0;
+    const double largeTitleHeight = 44.0;
+    const double bottomHeight = 10.0;
+    final ScrollController controller = ScrollController();
+
+    await tester.pumpWidget(
+      CupertinoApp(
+        home: CupertinoPageScaffold(
+          child: CustomScrollView(
+            controller: controller,
+            slivers: <Widget>[
+              const CupertinoSliverNavigationBar(
+                largeTitle: Text('Large title'),
+                bottom: PreferredSize(
+                  preferredSize: Size.fromHeight(bottomHeight),
+                  child: Placeholder(),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Container(
+                  height: 1200.0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(controller.offset, 0.0);
+
+    final Finder largeTitleFinder = find.ancestor(
+      of: find.text('Large title').first,
+      matching: find.byType(Padding),
+    ).first;
+    final Finder bottomFinder = find.byType(Placeholder);
+
+    // The persistent navigation bar, large title, and search field are all
+    // visible.
+    expect(tester.getTopLeft(largeTitleFinder).dy, persistentHeight);
+    expect(tester.getBottomLeft(largeTitleFinder).dy, persistentHeight + largeTitleHeight);
+    expect(tester.getTopLeft(bottomFinder).dy, 96.0);
+    expect(tester.getBottomLeft(bottomFinder).dy, 96.0 + bottomHeight);
+
+    // Scroll the length of the navigation bar search text field.
+    controller.jumpTo(bottomHeight);
+    await tester.pump();
+
+    // The search field is hidden, but the large title remains visible.
+    expect(tester.getBottomLeft(largeTitleFinder).dy, persistentHeight + largeTitleHeight);
+    expect(tester.getBottomLeft(bottomFinder).dy - tester.getTopLeft(bottomFinder).dy, 0.0);
+
+    // Scroll until the large title scrolls under the persistent navigation bar.
+    await tester.fling(find.byType(CustomScrollView), const Offset(0.0, -400.0), 10.0);
+    await tester.pump();
+
+    // The large title and search field are both hidden.
+    expect(tester.getBottomLeft(largeTitleFinder).dy - tester.getTopLeft(bottomFinder).dy, 0.0);
+    expect(tester.getBottomLeft(bottomFinder).dy - tester.getTopLeft(bottomFinder).dy, 0.0);
+
+    controller.dispose();
+  });
+
+  testWidgets('NavigationBarBottomMode.always mode for bottom', (WidgetTester tester) async {
+    const double persistentHeight = 44.0;
+    const double largeTitleHeight = 44.0;
+    const double bottomHeight = 10.0;
+
+    await tester.pumpWidget(
+      CupertinoApp(
+        home: CupertinoPageScaffold(
+          child: CustomScrollView(
+            slivers: <Widget>[
+              const CupertinoSliverNavigationBar(
+                largeTitle: Text('Large title'),
+                bottom: PreferredSize(
+                  preferredSize: Size.fromHeight(bottomHeight),
+                  child: Placeholder(),
+                ),
+                bottomMode: NavigationBarBottomMode.always,
+              ),
+              SliverToBoxAdapter(
+                child: Container(
+                  height: 1200.0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final Finder largeTitleFinder = find.ancestor(
+      of: find.text('Large title').first,
+      matching: find.byType(Padding),
+    ).first;
+    final Finder bottomFinder = find.byType(Placeholder);
+
+    // The persistent navigation bar, large title, and search field are all
+    // visible.
+    expect(tester.getTopLeft(largeTitleFinder).dy, persistentHeight);
+    expect(tester.getBottomLeft(largeTitleFinder).dy, persistentHeight + largeTitleHeight);
+    expect(tester.getTopLeft(bottomFinder).dy, 96.0);
+    expect(tester.getBottomLeft(bottomFinder).dy, 96.0 + bottomHeight);
+
+    // Scroll until the large title scrolls under the persistent navigation bar.
+    await tester.fling(find.byType(CustomScrollView), const Offset(0.0, -400.0), 10.0);
+    await tester.pump();
+
+    // Only the large title is hidden.
+    expect(tester.getBottomLeft(largeTitleFinder).dy - tester.getTopLeft(bottomFinder).dy, 0.0);
+    expect(tester.getTopLeft(bottomFinder).dy, persistentHeight);
+    expect(tester.getBottomLeft(bottomFinder).dy, persistentHeight + bottomHeight);
+  });
+
+  testWidgets('Disallow providing a bottomMode without a corresponding bottom', (WidgetTester tester) async {
+    expect(
+      () => const CupertinoSliverNavigationBar(
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(10.0),
+          child: Placeholder(),
+        ),
+        bottomMode: NavigationBarBottomMode.automatic,
+      ),
+      returnsNormally,
+    );
+
+    expect(
+      () => const CupertinoSliverNavigationBar(
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(10.0),
+          child: Placeholder(),
+        ),
+      ),
+      returnsNormally,
+    );
+
+    expect(
+      () => CupertinoSliverNavigationBar(
+        bottomMode: NavigationBarBottomMode.automatic,
+      ),
+      throwsA(isA<AssertionError>().having(
+        (AssertionError e) => e.message,
+        'message',
+        contains('A bottomMode was provided without a corresponding bottom.'),
+      )),
+    );
+  });
+
+  testWidgets('Overscroll when stretched does not resize bottom in automatic mode', (WidgetTester tester) async {
+    const double bottomHeight = 10.0;
+    const double bottomDisplacement = 96.0;
+
+    await tester.pumpWidget(
+      CupertinoApp(
+        home: CupertinoPageScaffold(
+          child: CustomScrollView(
+            slivers: <Widget>[
+              const CupertinoSliverNavigationBar(
+                stretch: true,
+                largeTitle: Text('Large title'),
+                bottom: PreferredSize(
+                  preferredSize: Size.fromHeight(bottomHeight),
+                  child: Placeholder(),
+                ),
+                bottomMode: NavigationBarBottomMode.automatic,
+              ),
+              SliverToBoxAdapter(
+                child: Container(
+                  height: 1200.0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final Finder bottomFinder = find.byType(Placeholder);
+    expect(tester.getTopLeft(bottomFinder).dy, bottomDisplacement);
+    expect(
+      tester.getBottomLeft(bottomFinder).dy - tester.getTopLeft(bottomFinder).dy,
+      bottomHeight,
+    );
+
+    // Overscroll to stretch the navigation bar.
+    await tester.fling(find.byType(CustomScrollView), const Offset(0.0, 50.0), 10.0);
+    await tester.pump();
+
+    // The bottom stretches without resizing.
+    expect(tester.getTopLeft(bottomFinder).dy, greaterThan(bottomDisplacement));
+    expect(
+      tester.getBottomLeft(bottomFinder).dy - tester.getTopLeft(bottomFinder).dy,
+      bottomHeight,
+    );
+  });
+
+  testWidgets('Large title snaps up to persistent nav bar when partially scrolled over halfway up', (WidgetTester tester) async {
+    final ScrollController scrollController = ScrollController();
+    addTearDown(scrollController.dispose);
+    const double largeTitleHeight = 52.0;
+
+    await tester.pumpWidget(
+      CupertinoApp(
+        home: CustomScrollView(
+          controller: scrollController,
+          slivers: const <Widget>[
+            CupertinoSliverNavigationBar(
+              largeTitle: Text('Large title'),
+              middle: Text('middle'),
+              alwaysShowMiddle: false,
+            ),
+            SliverFillRemaining(
+              child: SizedBox(
+                height: 1000.0,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final RenderAnimatedOpacity? renderOpacity = tester.element(find.text('middle')).findAncestorRenderObjectOfType<RenderAnimatedOpacity>();
+
+    // The middle widget is initially invisible.
+    expect(renderOpacity?.opacity.value, 0.0);
+    expect(scrollController.offset, 0.0);
+
+    // Scroll a little over the halfway point.
+    final TestGesture scrollGesture = await tester.startGesture(tester.getCenter(find.byType(Scrollable)));
+    await scrollGesture.moveBy(const Offset(0.0, -(largeTitleHeight / 2) - 1));
+    await scrollGesture.up();
+    await tester.pumpAndSettle();
+
+    // Expect the large title to snap to the persistent app bar.
+    expect(scrollController.position.pixels, largeTitleHeight);
+    expect(renderOpacity?.opacity.value, 1.0);
+  });
+
+  testWidgets('Large title snaps back to extended height when partially scrolled halfway up or less', (WidgetTester tester) async {
+    final ScrollController scrollController = ScrollController();
+    addTearDown(scrollController.dispose);
+    const double largeTitleHeight = 52.0;
+
+    await tester.pumpWidget(
+      CupertinoApp(
+        home: CustomScrollView(
+          controller: scrollController,
+          slivers: const <Widget>[
+            CupertinoSliverNavigationBar(
+              largeTitle: Text('Large title'),
+              middle: Text('middle'),
+              alwaysShowMiddle: false,
+            ),
+            SliverFillRemaining(
+              child: SizedBox(
+                height: 1000.0,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final RenderAnimatedOpacity? renderOpacity = tester.element(find.text('middle')).findAncestorRenderObjectOfType<RenderAnimatedOpacity>();
+
+    expect(renderOpacity?.opacity.value, 0.0);
+    expect(scrollController.offset, 0.0);
+
+    // Scroll to the halfway point.
+    final TestGesture scrollGesture = await tester.startGesture(tester.getCenter(find.byType(Scrollable)));
+    await scrollGesture.moveBy(const Offset(0.0, -(largeTitleHeight / 2)));
+    await scrollGesture.up();
+    await tester.pumpAndSettle();
+
+    // Expect the large title to snap back to its extended height.
+    expect(scrollController.position.pixels, 0.0);
+    expect(renderOpacity?.opacity.value, 0.0);
+  });
+
+  testWidgets('Large title and bottom snap up when partially scrolled over halfway up in automatic mode', (WidgetTester tester) async {
+    final ScrollController scrollController = ScrollController();
+    addTearDown(scrollController.dispose);
+    const double largeTitleHeight = 52.0;
+    const double bottomHeight = 100.0;
+
+    await tester.pumpWidget(
+      CupertinoApp(
+        home: CustomScrollView(
+          controller: scrollController,
+          slivers: const <Widget>[
+            CupertinoSliverNavigationBar(
+              largeTitle: Text('Large title'),
+              middle: Text('middle'),
+              alwaysShowMiddle: false,
+              bottom: PreferredSize(
+                preferredSize: Size.fromHeight(bottomHeight),
+                child: Placeholder(),
+              ),
+              bottomMode: NavigationBarBottomMode.automatic,
+            ),
+            SliverFillRemaining(
+              child: SizedBox(
+                height: 1000.0,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final RenderAnimatedOpacity? renderOpacity = tester.element(find.text('middle')).findAncestorRenderObjectOfType<RenderAnimatedOpacity>();
+    final Finder bottomFinder = find.byType(Placeholder);
+
+    expect(renderOpacity?.opacity.value, 0.0);
+    expect(scrollController.offset, 0.0);
+
+    // Scroll to just past the halfway point of the bottom widget.
+    final TestGesture scrollGesture1 = await tester.startGesture(tester.getCenter(find.byType(Scrollable)));
+    await scrollGesture1.moveBy(const Offset(0.0, -(bottomHeight / 2) - 1));
+    await scrollGesture1.up();
+    await tester.pumpAndSettle();
+
+    // Expect the bottom to snap up to the large title.
+    expect(scrollController.position.pixels, bottomHeight);
+    expect(tester.getBottomLeft(bottomFinder).dy - tester.getTopLeft(bottomFinder).dy, 0.0);
+    expect(renderOpacity?.opacity.value, 0.0);
+
+    // Scroll to just past the halfway point of the large title.
+    final TestGesture scrollGesture2 = await tester.startGesture(tester.getCenter(find.byType(Scrollable)));
+    await scrollGesture2.moveBy(const Offset(0.0, -(largeTitleHeight / 2) - 1));
+    await scrollGesture2.up();
+    await tester.pumpAndSettle();
+
+    // Expect the large title to snap up to the persistent nav bar.
+    expect(scrollController.position.pixels, bottomHeight + largeTitleHeight);
+    expect(renderOpacity?.opacity.value, 1.0);
+  });
+
+  testWidgets('Large title and bottom snap down when partially scrolled halfway up or less in automatic mode', (WidgetTester tester) async {
+    final ScrollController scrollController = ScrollController();
+    addTearDown(scrollController.dispose);
+    const double largeTitleHeight = 52.0;
+    const double bottomHeight = 100.0;
+
+    await tester.pumpWidget(
+      CupertinoApp(
+        home: CustomScrollView(
+          controller: scrollController,
+          slivers: const <Widget>[
+            CupertinoSliverNavigationBar(
+              largeTitle: Text('Large title'),
+              middle: Text('middle'),
+              alwaysShowMiddle: false,
+              bottom: PreferredSize(
+                preferredSize: Size.fromHeight(bottomHeight),
+                child: Placeholder(),
+              ),
+              bottomMode: NavigationBarBottomMode.automatic,
+            ),
+            SliverFillRemaining(
+              child: SizedBox(
+                height: 1000.0,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final RenderAnimatedOpacity? renderOpacity = tester.element(find.text('middle')).findAncestorRenderObjectOfType<RenderAnimatedOpacity>();
+    final Finder bottomFinder = find.byType(Placeholder);
+
+    expect(renderOpacity?.opacity.value, 0.0);
+    expect(scrollController.offset, 0.0);
+
+    // Scroll to the halfway point of the bottom widget.
+    final TestGesture scrollGesture1 = await tester.startGesture(tester.getCenter(find.byType(Scrollable)));
+    await scrollGesture1.moveBy(const Offset(0.0, -bottomHeight / 2));
+    await scrollGesture1.up();
+    await tester.pumpAndSettle();
+
+    // Expect the bottom to snap back to its extended height.
+    expect(scrollController.position.pixels, 0.0);
+    expect(tester.getBottomLeft(bottomFinder).dy - tester.getTopLeft(bottomFinder).dy, bottomHeight);
+    expect(renderOpacity?.opacity.value, 0.0);
+
+    // Scroll to the halfway point of the large title.
+    final TestGesture scrollGesture2 = await tester.startGesture(tester.getCenter(find.byType(Scrollable)));
+    await scrollGesture2.moveBy(const Offset(0.0, -(bottomHeight + largeTitleHeight / 2)));
+    await scrollGesture2.up();
+    await tester.pumpAndSettle();
+
+    // Expect the large title to snap back to its extended height, which is the
+    // same scroll offset as the fully-shrunk bottom widget.
+    expect(scrollController.position.pixels, bottomHeight);
+    expect(renderOpacity?.opacity.value, 0.0);
+  });
+
+  testWidgets('CupertinoNavigationBar with bottom widget', (WidgetTester tester) async {
+    const double persistentHeight = 44.0;
+    const double bottomHeight = 10.0;
+
+    await tester.pumpWidget(
+      CupertinoApp(
+        home: CupertinoPageScaffold(
+          navigationBar: const CupertinoNavigationBar(
+            middle: Text('Middle'),
+            bottom: PreferredSize(
+              preferredSize: Size.fromHeight(bottomHeight),
+              child: Placeholder(),
+            )
+          ),
+          child: Container(),
+        ),
+      ),
+    );
+
+    final Finder navBarFinder = find.byType(CupertinoNavigationBar);
+    expect(navBarFinder, findsOneWidget);
+    final CupertinoNavigationBar navBar = tester.widget<CupertinoNavigationBar>(navBarFinder);
+
+    final Finder columnFinder = find.descendant(
+      of: navBarFinder,
+      matching: find.byType(Column),
+    );
+    expect(columnFinder, findsOneWidget);
+    final Column column = tester.widget<Column>(columnFinder);
+
+    expect(column.children.length, 2);
+    expect(
+      find.descendant(
+        of: find.byWidget(column.children.first),
+        matching: find.text('Middle'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byWidget(column.children.last),
+        matching: find.byType(Placeholder),
+      ),
+      findsOneWidget,
+    );
+    expect(navBar.preferredSize.height, persistentHeight + bottomHeight);
+  });
 }
 
 class _ExpectStyles extends StatelessWidget {

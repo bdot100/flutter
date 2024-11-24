@@ -231,7 +231,7 @@ void main() {
     });
   });
 
-  testWithoutContext('runInView forwards arguments correctly', () async {
+  testUsingContext('runInView forwards arguments correctly', () async {
     final FakeVmServiceHost fakeVmServiceHost = FakeVmServiceHost(
       requests: <VmServiceExpectation>[
         const FakeVmServiceRequest(method: 'streamListen', args: <String, Object>{
@@ -263,12 +263,12 @@ void main() {
   testWithoutContext('flutterDebugDumpSemanticsTreeInTraversalOrder handles missing method', () async {
     final FakeVmServiceHost fakeVmServiceHost = FakeVmServiceHost(
       requests: <VmServiceExpectation>[
-        const FakeVmServiceRequest(
+        FakeVmServiceRequest(
           method: 'ext.flutter.debugDumpSemanticsTreeInTraversalOrder',
           args: <String, Object>{
             'isolateId': '1',
           },
-          error: FakeRPCError(code: RPCErrorCodes.kMethodNotFound),
+          error: FakeRPCError(code: vm_service.RPCErrorKind.kMethodNotFound.code),
         ),
       ]
     );
@@ -282,12 +282,12 @@ void main() {
   testWithoutContext('flutterDebugDumpSemanticsTreeInInverseHitTestOrder handles missing method', () async {
     final FakeVmServiceHost fakeVmServiceHost = FakeVmServiceHost(
       requests: <VmServiceExpectation>[
-        const FakeVmServiceRequest(
+        FakeVmServiceRequest(
           method: 'ext.flutter.debugDumpSemanticsTreeInInverseHitTestOrder',
           args: <String, Object>{
             'isolateId': '1',
           },
-          error: FakeRPCError(code: RPCErrorCodes.kMethodNotFound),
+          error: FakeRPCError(code: vm_service.RPCErrorKind.kMethodNotFound.code),
         ),
       ]
     );
@@ -301,12 +301,12 @@ void main() {
   testWithoutContext('flutterDebugDumpLayerTree handles missing method', () async {
     final FakeVmServiceHost fakeVmServiceHost = FakeVmServiceHost(
       requests: <VmServiceExpectation>[
-        const FakeVmServiceRequest(
+        FakeVmServiceRequest(
           method: 'ext.flutter.debugDumpLayerTree',
           args: <String, Object>{
             'isolateId': '1',
           },
-          error: FakeRPCError(code: RPCErrorCodes.kMethodNotFound),
+          error: FakeRPCError(code: vm_service.RPCErrorKind.kMethodNotFound.code),
         ),
       ]
     );
@@ -320,12 +320,12 @@ void main() {
   testWithoutContext('flutterDebugDumpRenderTree handles missing method', () async {
     final FakeVmServiceHost fakeVmServiceHost = FakeVmServiceHost(
       requests: <VmServiceExpectation>[
-        const FakeVmServiceRequest(
+        FakeVmServiceRequest(
           method: 'ext.flutter.debugDumpRenderTree',
           args: <String, Object>{
             'isolateId': '1',
           },
-          error: FakeRPCError(code: RPCErrorCodes.kMethodNotFound),
+          error: FakeRPCError(code: vm_service.RPCErrorKind.kMethodNotFound.code),
         ),
       ]
     );
@@ -339,12 +339,12 @@ void main() {
   testWithoutContext('flutterDebugDumpApp handles missing method', () async {
     final FakeVmServiceHost fakeVmServiceHost = FakeVmServiceHost(
       requests: <VmServiceExpectation>[
-        const FakeVmServiceRequest(
+        FakeVmServiceRequest(
           method: 'ext.flutter.debugDumpApp',
           args: <String, Object>{
             'isolateId': '1',
           },
-          error: FakeRPCError(code: RPCErrorCodes.kMethodNotFound),
+          error: FakeRPCError(code: vm_service.RPCErrorKind.kMethodNotFound.code),
         ),
       ]
     );
@@ -358,12 +358,12 @@ void main() {
   testWithoutContext('flutterDebugDumpFocusTree handles missing method', () async {
     final FakeVmServiceHost fakeVmServiceHost = FakeVmServiceHost(
       requests: <VmServiceExpectation>[
-        const FakeVmServiceRequest(
+        FakeVmServiceRequest(
           method: 'ext.flutter.debugDumpFocusTree',
           args: <String, Object>{
             'isolateId': '1',
           },
-          error: FakeRPCError(code: RPCErrorCodes.kMethodNotFound),
+          error: FakeRPCError(code: vm_service.RPCErrorKind.kMethodNotFound.code),
         ),
       ]
     );
@@ -398,39 +398,31 @@ void main() {
   testWithoutContext('Framework service extension invocations return null if service disappears ', () async {
     final FakeVmServiceHost fakeVmServiceHost = FakeVmServiceHost(
       requests: <VmServiceExpectation>[
-        const FakeVmServiceRequest(
+        FakeVmServiceRequest(
           method: kGetSkSLsMethod,
           args: <String, Object>{
             'viewId': '1234',
           },
-          error: FakeRPCError(code: RPCErrorCodes.kServiceDisappeared),
+          error: FakeRPCError(code: vm_service.RPCErrorKind.kServiceDisappeared.code),
         ),
-        const FakeVmServiceRequest(
+        FakeVmServiceRequest(
           method: kListViewsMethod,
-          error: FakeRPCError(code: RPCErrorCodes.kServiceDisappeared),
+          error: FakeRPCError(code: vm_service.RPCErrorKind.kServiceDisappeared.code),
         ),
-        const FakeVmServiceRequest(
+        FakeVmServiceRequest(
           method: kScreenshotSkpMethod,
-          error: FakeRPCError(code: RPCErrorCodes.kServiceDisappeared),
+          error: FakeRPCError(code: vm_service.RPCErrorKind.kServiceDisappeared.code),
         ),
-        const FakeVmServiceRequest(
+        FakeVmServiceRequest(
           method: 'setVMTimelineFlags',
           args: <String, dynamic>{
             'recordedStreams': <String>['test'],
           },
-          error: FakeRPCError(code: RPCErrorCodes.kServiceDisappeared),
+          error: FakeRPCError(code: vm_service.RPCErrorKind.kServiceDisappeared.code),
         ),
-        const FakeVmServiceRequest(
+        FakeVmServiceRequest(
           method: 'getVMTimeline',
-          error: FakeRPCError(code: RPCErrorCodes.kServiceDisappeared),
-        ),
-        const FakeVmServiceRequest(
-          method: kRenderFrameWithRasterStatsMethod,
-          args: <String, dynamic>{
-            'viewId': '1',
-            'isolateId': '12',
-          },
-          error: FakeRPCError(code: RPCErrorCodes.kServiceDisappeared),
+          error: FakeRPCError(code: vm_service.RPCErrorKind.kServiceDisappeared.code),
         ),
       ]
     );
@@ -452,22 +444,18 @@ void main() {
     final vm_service.Response? timeline = await fakeVmServiceHost.vmService.getTimeline();
     expect(timeline, isNull);
 
-    final Map<String, Object?>? rasterStats =
-      await fakeVmServiceHost.vmService.renderFrameWithRasterStats(viewId: '1', uiIsolateId: '12');
-    expect(rasterStats, isNull);
-
     expect(fakeVmServiceHost.hasRemainingExpectations, false);
   });
 
   testWithoutContext('getIsolateOrNull returns null if service disappears ', () async {
     final FakeVmServiceHost fakeVmServiceHost = FakeVmServiceHost(
       requests: <VmServiceExpectation>[
-        const FakeVmServiceRequest(
+        FakeVmServiceRequest(
           method: 'getIsolate',
           args: <String, Object>{
             'isolateId': 'isolate/123',
           },
-          error: FakeRPCError(code: RPCErrorCodes.kServiceDisappeared),
+          error: FakeRPCError(code: vm_service.RPCErrorKind.kServiceDisappeared.code),
         ),
       ]
     );
@@ -476,35 +464,6 @@ void main() {
       'isolate/123',
     );
     expect(isolate, null);
-
-    expect(fakeVmServiceHost.hasRemainingExpectations, false);
-  });
-
-  testWithoutContext('renderWithStats forwards stats correctly', () async {
-    // ignore: always_specify_types
-    const Map<String, dynamic> response = {
-      'type': 'RenderFrameWithRasterStats',
-      'snapshots':<dynamic>[
-        // ignore: always_specify_types
-        {
-          'layer_unique_id':1512,
-          'duration_micros':477,
-          'snapshot':'',
-        },
-      ],
-    };
-    final FakeVmServiceHost fakeVmServiceHost = FakeVmServiceHost(
-      requests: <VmServiceExpectation>[
-        const FakeVmServiceRequest(method: kRenderFrameWithRasterStatsMethod, args: <String, Object>{
-          'isolateId': 'isolate/123',
-          'viewId': 'view/1',
-        }, jsonResponse: response),
-      ]
-    );
-
-    final Map<String, Object?>? rasterStats =
-      await fakeVmServiceHost.vmService.renderFrameWithRasterStats(viewId: 'view/1', uiIsolateId: 'isolate/123');
-    expect(rasterStats, equals(response));
 
     expect(fakeVmServiceHost.hasRemainingExpectations, false);
   });
@@ -576,12 +535,6 @@ void main() {
             'isolateId': '1',
           },
         ),
-        const FakeVmServiceRequest(
-          method: 'streamCancel',
-          args: <String, Object>{
-            'streamId': 'Isolate',
-          },
-        ),
       ]);
 
       final vm_service.IsolateRef isolateRef = await fakeVmServiceHost.vmService.findExtensionIsolate(kExtensionName);
@@ -633,12 +586,6 @@ void main() {
             'isolateId': '2',
           },
         ),
-        const FakeVmServiceRequest(
-          method: 'streamCancel',
-          args: <String, Object>{
-            'streamId': 'Isolate',
-          },
-        ),
       ]);
 
       final vm_service.IsolateRef isolateRef = await fakeVmServiceHost.vmService.findExtensionIsolate(otherExtensionName);
@@ -668,12 +615,12 @@ void main() {
             ],
           },
         ),
-        const FakeVmServiceRequest(
+        FakeVmServiceRequest(
           method: 'getIsolate',
           args: <String, Object>{
             'isolateId': '1',
           },
-          error: FakeRPCError(code: RPCErrorCodes.kServiceDisappeared),
+          error: FakeRPCError(code: vm_service.RPCErrorKind.kServiceDisappeared.code),
         ),
         // Assume a different isolate returns.
         FakeVmServiceStreamResponse(
@@ -684,12 +631,6 @@ void main() {
             timestamp: 1,
             isolate: isolate2,
           ),
-        ),
-        const FakeVmServiceRequest(
-          method: 'streamCancel',
-          args: <String, Object>{
-            'streamId': 'Isolate',
-          },
         ),
       ]);
 
@@ -713,12 +654,6 @@ void main() {
           jsonResponse: isolate.toJson()..['extensionRPCs'] = <String>[kExtensionName],
           args: <String, Object>{
             'isolateId': '1',
-          },
-        ),
-        const FakeVmServiceRequest(
-          method: 'streamCancel',
-          args: <String, Object>{
-            'streamId': 'Isolate',
           },
         ),
       ]);
@@ -751,12 +686,6 @@ void main() {
             timestamp: 1,
           ),
         ),
-        const FakeVmServiceRequest(
-          method: 'streamCancel',
-          args: <String, Object>{
-            'streamId': 'Isolate',
-          },
-        ),
       ]);
 
       final vm_service.IsolateRef isolateRef = await fakeVmServiceHost.vmService.findExtensionIsolate(kExtensionName);
@@ -771,16 +700,9 @@ void main() {
             'streamId': 'Isolate',
           },
         ),
-        const FakeVmServiceRequest(
+        FakeVmServiceRequest(
           method: kListViewsMethod,
-          error: FakeRPCError(code: RPCErrorCodes.kServiceDisappeared),
-        ),
-        const FakeVmServiceRequest(
-          method: 'streamCancel',
-          args: <String, Object>{
-            'streamId': 'Isolate',
-          },
-          error: FakeRPCError(code: RPCErrorCodes.kServiceDisappeared),
+          error: FakeRPCError(code: vm_service.RPCErrorKind.kServiceDisappeared.code),
         ),
       ]);
 

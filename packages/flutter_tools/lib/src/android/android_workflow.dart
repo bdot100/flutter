@@ -11,6 +11,7 @@ import '../base/context.dart';
 import '../base/io.dart';
 import '../base/logger.dart';
 import '../base/platform.dart';
+import '../base/process.dart';
 import '../base/user_messages.dart';
 import '../base/version.dart';
 import '../convert.dart';
@@ -104,7 +105,12 @@ class AndroidValidator extends DoctorValidator {
         messages.add(ValidationMessage.error(_userMessages.androidMissingJdk));
         return false;
       }
-      messages.add(ValidationMessage(_userMessages.androidJdkLocation(_java!.binaryPath)));
+      messages.add(ValidationMessage(
+        _androidJdkLocationMessage(
+          _java!.binaryPath,
+          _java.javaSource,
+        ),
+      ));
       if (!_java.canRun()) {
         messages.add(ValidationMessage.error(_userMessages.androidCantRunJavaBinary(_java.binaryPath)));
         return false;
@@ -334,7 +340,7 @@ class AndroidLicenseValidator extends DoctorValidator {
         <String>[_androidSdk!.sdkManagerPath!, '--licenses'],
         environment: _java?.environment,
       );
-      process.stdin.write('n\n');
+      await ProcessUtils.writelnToStdinUnsafe(stdin: process.stdin, line: 'n');
       // We expect logcat streams to occasionally contain invalid utf-8,
       // see: https://github.com/flutter/flutter/pull/8864.
       final Future<void> output = process.stdout
@@ -349,7 +355,7 @@ class AndroidLicenseValidator extends DoctorValidator {
         .asFuture<void>();
       await Future.wait<void>(<Future<void>>[output, errors]);
       return status ?? LicensesAccepted.unknown;
-    } on ProcessException catch (e) {
+    } on IOException catch (e) {
       _logger.printTrace('Failed to run Android sdk manager: $e');
       return LicensesAccepted.unknown;
     }
@@ -452,4 +458,27 @@ class AndroidLicenseValidator extends DoctorValidator {
       _platform,
     );
   }
+}
+
+String _androidJdkLocationMessage(String location, JavaSource source) {
+  final String setWithConfigBreadcrumb = switch (source) {
+    JavaSource.androidStudio || JavaSource.path || JavaSource.javaHome =>
+      'To manually set the JDK path, use: `flutter config --jdk-dir="path/to/jdk"`.',
+    JavaSource.flutterConfig =>
+      'To change the current JDK, run: `flutter config --jdk-dir="path/to/jdk"`.'
+  };
+  final String sourceMessagePart = switch (source) {
+    JavaSource.androidStudio =>
+      'This is the JDK bundled with the latest Android Studio installation on this machine.',
+    JavaSource.javaHome =>
+      'This JDK is specified by the JAVA_HOME environment variable.',
+    JavaSource.path =>
+      'This JDK was found in the system PATH.',
+    JavaSource.flutterConfig =>
+      'This JDK is specified in your Flutter configuration.',
+  };
+
+  return 'Java binary at: $location\n'
+  '$sourceMessagePart\n'
+  '$setWithConfigBreadcrumb';
 }

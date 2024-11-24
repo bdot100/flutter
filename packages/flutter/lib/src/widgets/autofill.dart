@@ -2,6 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'editable_text.dart';
+/// @docImport 'form.dart';
+/// @docImport 'scrollable.dart';
+library;
+
 import 'package:flutter/services.dart';
 import 'framework.dart';
 
@@ -26,7 +31,7 @@ enum AutofillContextAction {
 /// An [AutofillScope] widget that groups [AutofillClient]s together.
 ///
 /// [AutofillClient]s that share the same closest [AutofillGroup] ancestor must
-/// be built together, and they be will be autofilled together.
+/// be built together, and they will be autofilled together.
 ///
 /// {@macro flutter.services.AutofillScope}
 ///
@@ -208,12 +213,14 @@ class AutofillGroupState extends State<AutofillGroup> with AutofillScopeMixin {
     _clients.remove(autofillId);
   }
 
+  @protected
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _isTopmostAutofillGroup = AutofillGroup.maybeOf(context) == null;
   }
 
+  @protected
   @override
   Widget build(BuildContext context) {
     return _AutofillScope(
@@ -222,6 +229,7 @@ class AutofillGroupState extends State<AutofillGroup> with AutofillScopeMixin {
     );
   }
 
+  @protected
   @override
   void dispose() {
     super.dispose();

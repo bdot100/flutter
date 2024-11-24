@@ -23,6 +23,7 @@ import '../device_port_forwarder.dart';
 import '../features.dart';
 import '../project.dart';
 import '../protocol_discovery.dart';
+import '../vmservice.dart';
 import 'custom_device_config.dart';
 import 'custom_device_workflow.dart';
 import 'custom_devices_config.dart';
@@ -111,6 +112,9 @@ class CustomDeviceLogReader extends DeviceLogReader {
 
   @override
   Stream<String> get logLines => logLinesController.stream;
+
+  @override
+  Future<void> provideVmService(FlutterVmService connectedVmService) async { }
 }
 
 /// A [DevicePortForwarder] that uses commands to forward / unforward a port.
@@ -218,7 +222,7 @@ class CustomDevicePortForwarder extends DevicePortForwarder {
       }
     }
 
-    throw ToolExit('Forwarding port for custom device $_deviceName failed after $tries tries.');
+    throwToolExit('Forwarding port for custom device $_deviceName failed after $tries tries.');
   }
 
   @override
@@ -352,13 +356,12 @@ class CustomDeviceAppSession {
     required DebuggingOptions debuggingOptions,
     Map<String, Object?> platformArgs = const <String, Object>{},
     bool prebuiltApplication = false,
-    bool ipv6 = false,
     String? userIdentifier
   }) async {
     final bool traceStartup = platformArgs['trace-startup'] as bool? ?? false;
     final String? packageName = _appPackage.name;
     if (packageName == null) {
-      throw ToolExit('Could not start app, name for $_appPackage is unknown.');
+      throwToolExit('Could not start app, name for $_appPackage is unknown.');
     }
     final List<String> interpolated = interpolateCommand(
       _device._config.runDebugCommand,
@@ -377,7 +380,7 @@ class CustomDeviceAppSession {
       logReader,
       portForwarder: _device._config.usesPortForwarding ? _device.portForwarder : null,
       logger: _logger,
-      ipv6: ipv6,
+      ipv6: debuggingOptions.ipv6,
     );
 
     // We need to make the discovery listen to the logReader before the logReader
@@ -439,7 +442,7 @@ class CustomDeviceAppSession {
 class CustomDevice extends Device {
   CustomDevice({
     required CustomDeviceConfig config,
-    required Logger logger,
+    required super.logger,
     required ProcessManager processManager,
   }) : _config = config,
        _logger = logger,
@@ -769,7 +772,7 @@ class CustomDevice extends Device {
       if (_config.postBuildCommand != null) {
         final String? packageName = package.name;
         if (packageName == null) {
-          throw ToolExit('Could not start app, name for $package is unknown.');
+          throwToolExit('Could not start app, name for $package is unknown.');
         }
         await _tryPostBuild(
           appName: packageName,
@@ -789,7 +792,6 @@ class CustomDevice extends Device {
       debuggingOptions: debuggingOptions,
       platformArgs: platformArgs,
       prebuiltApplication: prebuiltApplication,
-      ipv6: ipv6,
       userIdentifier: userIdentifier,
     );
   }
@@ -824,7 +826,7 @@ class CustomDevices extends PollingDeviceDiscovery {
     required FeatureFlags featureFlags,
     required ProcessManager processManager,
     required Logger logger,
-    required CustomDevicesConfig config
+    required CustomDevicesConfig config,
   }) : _customDeviceWorkflow = CustomDeviceWorkflow(
          featureFlags: featureFlags,
        ),
@@ -853,7 +855,7 @@ class CustomDevices extends PollingDeviceDiscovery {
         (CustomDeviceConfig config) => CustomDevice(
           config: config,
           logger: _logger,
-          processManager: _processManager
+          processManager: _processManager,
         )
       ).toList();
   }

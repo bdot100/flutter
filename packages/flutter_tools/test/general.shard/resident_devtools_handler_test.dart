@@ -16,6 +16,7 @@ import 'package:flutter_tools/src/resident_runner.dart';
 import 'package:flutter_tools/src/vmservice.dart';
 import 'package:test/fake.dart';
 import 'package:vm_service/vm_service.dart' as vm_service;
+import 'package:vm_service/vm_service.dart';
 
 import '../src/common.dart';
 import '../src/fake_process_manager.dart';
@@ -153,12 +154,6 @@ void main() {
           'isolateId': '1',
         },
       ),
-      const FakeVmServiceRequest(
-        method: 'streamCancel',
-        args: <String, Object>{
-          'streamId': 'Isolate',
-        },
-      ),
       listViews,
       listViews,
       const FakeVmServiceRequest(
@@ -225,12 +220,6 @@ void main() {
         },
       ),
       const FakeVmServiceRequest(
-        method: 'streamCancel',
-        args: <String, Object>{
-          'streamId': 'Isolate',
-        },
-      ),
-      const FakeVmServiceRequest(
         method: 'ext.flutter.activeDevToolsServerAddress',
         args: <String, Object>{
           'value': 'http://localhost:8080',
@@ -266,16 +255,9 @@ void main() {
           'streamId': 'Isolate',
         },
       ),
-      const FakeVmServiceRequest(
+      FakeVmServiceRequest(
         method: kListViewsMethod,
-        error: FakeRPCError(code: RPCErrorCodes.kServiceDisappeared),
-      ),
-      const FakeVmServiceRequest(
-        method: 'streamCancel',
-        args: <String, Object>{
-          'streamId': 'Isolate',
-        },
-        error: FakeRPCError(code: RPCErrorCodes.kServiceDisappeared),
+        error: FakeRPCError(code: RPCErrorKind.kServiceDisappeared.code),
       ),
     ], httpAddress: Uri.parse('http://localhost:1234'));
 
@@ -311,12 +293,6 @@ void main() {
           'isolateId': '1',
         },
       ),
-      const FakeVmServiceRequest(
-        method: 'streamCancel',
-        args: <String, Object>{
-          'streamId': 'Isolate',
-        },
-      ),
       listViews,
       listViews,
       const FakeVmServiceRequest(
@@ -342,16 +318,9 @@ void main() {
           'streamId': 'Isolate',
         },
       ),
-      const FakeVmServiceRequest(
+      FakeVmServiceRequest(
         method: kListViewsMethod,
-        error: FakeRPCError(code: RPCErrorCodes.kServiceDisappeared),
-      ),
-      const FakeVmServiceRequest(
-        method: 'streamCancel',
-        args: <String, Object>{
-          'streamId': 'Isolate',
-        },
-        error: FakeRPCError(code: RPCErrorCodes.kServiceDisappeared),
+        error: FakeRPCError(code: RPCErrorKind.kServiceDisappeared.code),
       ),
     ], httpAddress: Uri.parse('http://localhost:5678'));
 
@@ -469,12 +438,14 @@ class FakeDartDevelopmentService extends Fake implements DartDevelopmentService 
 
   @override
   Future<void> startDartDevelopmentService(
-    Uri observatoryUri, {
-    required Logger logger,
-    int? hostPort,
-    bool? ipv6,
+    Uri vmServiceUri, {
+    int? ddsPort,
     bool? disableServiceAuthCodes,
+    bool? ipv6,
+    bool enableDevTools = true,
     bool cacheStartupProfile = false,
+    String? google3WorkspaceRoot,
+    Uri? devToolsServerAddress,
   }) async {
     started = true;
   }
@@ -483,7 +454,4 @@ class FakeDartDevelopmentService extends Fake implements DartDevelopmentService 
   Future<void> shutdown() async {
     disposed = true;
   }
-
-  @override
-  void setExternalDevToolsUri(Uri uri) {}
 }

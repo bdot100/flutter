@@ -2,6 +2,17 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'package:flutter/material.dart';
+/// @docImport 'package:flutter_test/flutter_test.dart';
+///
+/// @docImport 'primary_scroll_controller.dart';
+/// @docImport 'scroll_configuration.dart';
+/// @docImport 'scroll_view.dart';
+/// @docImport 'scrollable.dart';
+/// @docImport 'single_child_scroll_view.dart';
+/// @docImport 'viewport.dart';
+library;
+
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -612,8 +623,8 @@ class _DraggableSheetExtent {
     required bool snap,
     required List<double> snapSizes,
     required double initialSize,
-    Duration? snapAnimationDuration,
-    bool shouldCloseOnMinExtent = true,
+    required Duration? snapAnimationDuration,
+    required bool shouldCloseOnMinExtent,
   }) {
     return _DraggableSheetExtent(
       minSize: minSize,
@@ -733,6 +744,7 @@ class _DraggableScrollableSheetState extends State<DraggableScrollableSheet> {
       snapSizes: _impliedSnapSizes(),
       snapAnimationDuration: widget.snapAnimationDuration,
       initialSize: widget.initialChildSize,
+      shouldCloseOnMinExtent: widget.shouldCloseOnMinExtent,
     );
     // Modify the existing scroll controller instead of replacing it so that
     // developers listening to the controller do not have to rebuild their listeners.
@@ -1061,7 +1073,7 @@ class _DraggableScrollableActuatorState extends State<DraggableScrollableActuato
   }
 }
 
-/// A [ChangeNotifier] to use with [InheritedResetNotifier] to notify
+/// A [ChangeNotifier] to use with [_InheritedResetNotifier] to notify
 /// descendants that they should reset to initial state.
 class _ResetNotifier extends ChangeNotifier {
   _ResetNotifier() {

@@ -2,6 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'app.dart';
+/// @docImport 'floating_action_button.dart';
+/// @docImport 'icon_button.dart';
+/// @docImport 'popup_menu.dart';
+library;
+
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -442,7 +448,7 @@ class TooltipState extends State<Tooltip> with SingleTickerProviderStateMixin {
 
   /// The plain text message for this tooltip.
   ///
-  /// This value will either come from [widget.message] or [widget.richMessage].
+  /// This value will either come from [Tooltip.message] or [Tooltip.richMessage].
   String get _tooltipMessage => widget.message ?? widget.richMessage!.toPlainText();
 
   Timer? _timer;
@@ -700,6 +706,7 @@ class TooltipState extends State<Tooltip> with SingleTickerProviderStateMixin {
     return true;
   }
 
+  @protected
   @override
   void initState() {
     super.initState();
@@ -709,6 +716,7 @@ class TooltipState extends State<Tooltip> with SingleTickerProviderStateMixin {
     GestureBinding.instance.pointerRouter.addGlobalRoute(_handleGlobalPointerEvent);
   }
 
+  @protected
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -791,6 +799,7 @@ class TooltipState extends State<Tooltip> with SingleTickerProviderStateMixin {
       : SelectionContainer.disabled(child: overlayChild);
   }
 
+  @protected
   @override
   void dispose() {
     GestureBinding.instance.pointerRouter.removeGlobalRoute(_handleGlobalPointerEvent);
@@ -809,6 +818,7 @@ class TooltipState extends State<Tooltip> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
+  @protected
   @override
   Widget build(BuildContext context) {
     // If message is empty then no need to create a tooltip overlay to show

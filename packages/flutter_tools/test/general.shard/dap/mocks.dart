@@ -4,7 +4,6 @@
 
 import 'dart:async';
 
-import 'package:collection/collection.dart';
 import 'package:dds/dap.dart';
 import 'package:flutter_tools/src/base/file_system.dart';
 import 'package:flutter_tools/src/base/platform.dart';
@@ -90,7 +89,7 @@ class MockFlutterDebugAdapter extends FlutterDebugAdapter {
   /// by the debug adapter.
   List<String> get dapToFlutterRequests => dapToFlutterMessages
       .map((Map<String, Object?> message) => message['method'] as String?)
-      .whereNotNull()
+      .nonNulls
       .toList();
 
   /// A handler for the 'app.exposeUrl' reverse-request.
@@ -204,7 +203,7 @@ class MockFlutterDebugAdapter extends FlutterDebugAdapter {
   }
 
   @override
-  void sendFlutterMessage(Map<String, Object?> message) {
+  Future<void> sendFlutterMessage(Map<String, Object?> message) async {
     dapToFlutterMessages.add(message);
     // Don't call super because it will try to write to the process that we
     // didn't actually spawn.

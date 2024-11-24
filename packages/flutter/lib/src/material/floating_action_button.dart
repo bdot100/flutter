@@ -2,6 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'elevated_button.dart';
+/// @docImport 'ink_well.dart';
+/// @docImport 'material.dart';
+library;
+
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -323,7 +328,7 @@ class FloatingActionButton extends StatelessWidget {
 
   /// {@macro flutter.material.RawMaterialButton.mouseCursor}
   ///
-  /// If this property is null, [MaterialStateMouseCursor.clickable] will be used.
+  /// If this property is null, [WidgetStateMouseCursor.clickable] will be used.
   final MouseCursor? mouseCursor;
 
   /// The z-coordinate at which to place this button relative to its parent.
@@ -421,7 +426,7 @@ class FloatingActionButton extends StatelessWidget {
 
   /// True if this is an "extended" floating action button.
   ///
-  /// Typically [extended] buttons have a [StadiumBorder] [shape]
+  /// Typically "extended" buttons have a [StadiumBorder] [shape]
   /// and have been created with the [FloatingActionButton.extended]
   /// constructor.
   ///
@@ -817,24 +822,20 @@ class _FABDefaultsM3 extends FloatingActionButtonThemeData {
   @override Color? get hoverColor => _colors.onPrimaryContainer.withOpacity(0.08);
 
   @override
-  ShapeBorder? get shape {
-    return switch (type) {
-      _FloatingActionButtonType.regular  => const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16.0))),
-      _FloatingActionButtonType.small    => const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12.0))),
-      _FloatingActionButtonType.large    => const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(28.0))),
-      _FloatingActionButtonType.extended => const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16.0))),
-    };
-  }
+  ShapeBorder? get shape => switch (type) {
+    _FloatingActionButtonType.regular  => const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16.0))),
+    _FloatingActionButtonType.small    => const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12.0))),
+    _FloatingActionButtonType.large    => const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(28.0))),
+    _FloatingActionButtonType.extended => const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16.0))),
+  };
 
   @override
-  double? get iconSize {
-    return switch (type) {
-      _FloatingActionButtonType.regular  => 24.0,
-      _FloatingActionButtonType.small    => 24.0,
-      _FloatingActionButtonType.large    => 36.0,
-      _FloatingActionButtonType.extended => 24.0,
-    };
-  }
+  double? get iconSize => switch (type) {
+    _FloatingActionButtonType.regular  => 24.0,
+    _FloatingActionButtonType.small    => 24.0,
+    _FloatingActionButtonType.large    => 36.0,
+    _FloatingActionButtonType.extended => 24.0,
+  };
 
   @override EdgeInsetsGeometry? get extendedPadding => EdgeInsetsDirectional.only(start: hasChild && _isExtended ? 16.0 : 20.0, end: 20.0);
   @override TextStyle? get extendedTextStyle => _textTheme.labelLarge;

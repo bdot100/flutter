@@ -664,11 +664,9 @@ class AppDomain extends Domain {
     String? projectRootPath,
     String? packagesFilePath,
     String? dillOutputPath,
-    bool ipv6 = false,
     String? isolateFilter,
     bool machine = true,
     String? userIdentifier,
-    bool enableDevTools = true,
     required HotRunnerNativeAssetsBuilder? nativeAssetsBuilder,
   }) async {
     if (!await device.supportsRuntimeMode(options.buildInfo.mode)) {
@@ -699,7 +697,6 @@ class AppDomain extends Domain {
         flutterProject: flutterProject,
         target: target,
         debuggingOptions: options,
-        ipv6: ipv6,
         stayResident: true,
         urlTunneller: options.webEnableExposeUrl! ? daemon.daemonDomain.exposeUrl : null,
         machine: machine,
@@ -717,7 +714,6 @@ class AppDomain extends Domain {
         applicationBinary: applicationBinary,
         projectRootPath: projectRootPath,
         dillOutputPath: dillOutputPath,
-        ipv6: ipv6,
         hostIsIde: true,
         machine: machine,
         analytics: globals.analytics,
@@ -729,7 +725,6 @@ class AppDomain extends Domain {
         target: target,
         debuggingOptions: options,
         applicationBinary: applicationBinary,
-        ipv6: ipv6,
         machine: machine,
       );
     }
@@ -743,7 +738,6 @@ class AppDomain extends Domain {
         return runner.run(
           connectionInfoCompleter: connectionInfoCompleter,
           appStartedCompleter: appStartedCompleter,
-          enableDevTools: enableDevTools,
           route: route,
         );
       },
@@ -908,7 +902,7 @@ class AppDomain extends Domain {
     if (app == null) {
       throw DaemonException("app '$appId' not found");
     }
-    final FlutterDevice device = app.runner!.flutterDevices.first;
+    final FlutterDevice device = app.runner.flutterDevices.first;
     final List<FlutterView> views = await device.vmService!.getFlutterViews();
     final Map<String, Object?>? result = await device
       .vmService!
@@ -1008,7 +1002,6 @@ class DeviceDomain extends Domain {
     registerHandler('takeScreenshot', takeScreenshot);
     registerHandler('startDartDevelopmentService', startDartDevelopmentService);
     registerHandler('shutdownDartDevelopmentService', shutdownDartDevelopmentService);
-    registerHandler('setExternalDevToolsUriForDartDevelopmentService', setExternalDevToolsUriForDartDevelopmentService);
     registerHandler('getDiagnostics', getDiagnostics);
     registerHandler('startVMServiceDiscoveryForAttach', startVMServiceDiscoveryForAttach);
     registerHandler('stopVMServiceDiscoveryForAttach', stopVMServiceDiscoveryForAttach);
@@ -1196,7 +1189,6 @@ class DeviceDomain extends Domain {
       route: _getStringArg(args, 'route'),
       platformArgs: castStringKeyedMap(args['platformArgs']) ?? const <String, Object>{},
       prebuiltApplication: _getBoolArg(args, 'prebuiltApplication') ?? false,
-      ipv6: _getBoolArg(args, 'ipv6') ?? false,
       userIdentifier: _getStringArg(args, 'userIdentifier'),
     );
     return <String, Object?>{
@@ -1244,23 +1236,33 @@ class DeviceDomain extends Domain {
   }
 
   /// Starts DDS for the device.
-  Future<String?> startDartDevelopmentService(Map<String, Object?> args) async {
+  Future<Map<String, Object?>> startDartDevelopmentService(Map<String, Object?> args) async {
     final String? deviceId = _getStringArg(args, 'deviceId', required: true);
     final bool? disableServiceAuthCodes = _getBoolArg(args, 'disableServiceAuthCodes');
     final String vmServiceUriStr = _getStringArg(args, 'vmServiceUri', required: true)!;
+    final bool enableDevTools = _getBoolArg(args, 'enableDevTools') ?? false;
+    final String? devToolsServerAddressStr = _getStringArg(args, 'devToolsServerAddress');
 
     final Device? device = await daemon.deviceDomain._getDevice(deviceId);
     if (device == null) {
       throw DaemonException("device '$deviceId' not found");
     }
 
+    Uri? devToolsServerAddress;
+    if (devToolsServerAddressStr != null) {
+      devToolsServerAddress = Uri.parse(devToolsServerAddressStr);
+    }
+
     await device.dds.startDartDevelopmentService(
       Uri.parse(vmServiceUriStr),
-      logger: globals.logger,
       disableServiceAuthCodes: disableServiceAuthCodes,
+      enableDevTools: enableDevTools,
+      devToolsServerAddress: devToolsServerAddress,
     );
     unawaited(device.dds.done.whenComplete(() => sendEvent('device.dds.done.$deviceId')));
-    return device.dds.uri?.toString();
+    return <String, Object?>{
+      'ddsUri': device.dds.uri?.toString(),
+    };
   }
 
   /// Starts DDS for the device.
@@ -1272,19 +1274,7 @@ class DeviceDomain extends Domain {
       throw DaemonException("device '$deviceId' not found");
     }
 
-    await device.dds.shutdown();
-  }
-
-  Future<void> setExternalDevToolsUriForDartDevelopmentService(Map<String, Object?> args) async {
-    final String? deviceId = _getStringArg(args, 'deviceId', required: true);
-    final String uri = _getStringArg(args, 'uri', required: true)!;
-
-    final Device? device = await daemon.deviceDomain._getDevice(deviceId);
-    if (device == null) {
-      throw DaemonException("device '$deviceId' not found");
-    }
-
-    device.dds.setExternalDevToolsUri(Uri.parse(uri));
+    device.dds.shutdown();
   }
 
   @override
@@ -1560,20 +1550,24 @@ class NotifyingLogger extends DelegatingLogger {
 
 /// A running application, started by this daemon.
 class AppInstance {
-  AppInstance(this.id, { this.runner, this.logToStdout = false, required AppRunLogger logger })
-    : _logger = logger;
+  AppInstance(
+    this.id, {
+    required this.runner,
+    this.logToStdout = false,
+    required AppRunLogger logger,
+  }) : _logger = logger;
 
   final String id;
-  final ResidentRunner? runner;
+  final ResidentRunner runner;
   final bool logToStdout;
   final AppRunLogger _logger;
 
   Future<OperationResult> restart({ bool fullRestart = false, bool pause = false, String? reason }) {
-    return runner!.restart(fullRestart: fullRestart, pause: pause, reason: reason);
+    return runner.restart(fullRestart: fullRestart, pause: pause, reason: reason);
   }
 
-  Future<void> stop() => runner!.exit();
-  Future<void> detach() => runner!.detach();
+  Future<void> stop() => runner.exit();
+  Future<void> detach() => runner.detach();
 
   void closeLogger() {
     _logger.close();

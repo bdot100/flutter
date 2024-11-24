@@ -2,6 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'package:flutter/material.dart';
+///
+/// @docImport 'single_child_scroll_view.dart';
+/// @docImport 'text.dart';
+library;
+
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show clampDouble, precisionErrorTolerance;
@@ -194,6 +200,11 @@ class PageController extends ScrollController {
       return Future<void>.value();
     }
 
+    if (!position.hasViewportDimension) {
+      position._pageToUseOnStartup = page.toDouble();
+      return Future<void>.value();
+    }
+
     return position.animateTo(
       position.getPixelsFromPage(page.toDouble()),
       duration: duration,
@@ -209,6 +220,11 @@ class PageController extends ScrollController {
     final _PagePosition position = this.position as _PagePosition;
     if (position._cachedPage != null) {
       position._cachedPage = page.toDouble();
+      return;
+    }
+
+    if (!position.hasViewportDimension) {
+      position._pageToUseOnStartup = page.toDouble();
       return;
     }
 
@@ -383,13 +399,16 @@ class _PagePosition extends ScrollPositionWithSingleContext implements PageMetri
 
   @override
   double? get page {
+    if (!hasPixels) {
+      return null;
+    }
     assert(
-      !hasPixels || hasContentDimensions,
+      hasContentDimensions || !haveDimensions,
       'Page value is only available after content dimensions are established.',
     );
-    return !hasPixels || !hasContentDimensions
-      ? null
-      : _cachedPage ?? getPageFromPixels(clampDouble(pixels, minScrollExtent, maxScrollExtent), viewportDimension);
+    return hasContentDimensions || haveDimensions
+        ? _cachedPage ?? getPageFromPixels(clampDouble(pixels, minScrollExtent, maxScrollExtent), viewportDimension)
+        : null;
   }
 
   @override
@@ -820,12 +839,7 @@ class PageView extends StatefulWidget {
   /// Defaults to [HitTestBehavior.opaque].
   final HitTestBehavior hitTestBehavior;
 
-  /// {@macro flutter.widgets.shadow.scrollBehavior}
-  ///
-  /// [ScrollBehavior]s also provide [ScrollPhysics]. If an explicit
-  /// [ScrollPhysics] is provided in [physics], it will take precedence,
-  /// followed by [scrollBehavior], and then the inherited ancestor
-  /// [ScrollBehavior].
+  /// {@macro flutter.widgets.scrollable.scrollBehavior}
   ///
   /// The [ScrollBehavior] of the inherited [ScrollConfiguration] will be
   /// modified by default to not apply a [Scrollbar].

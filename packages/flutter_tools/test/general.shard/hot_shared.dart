@@ -4,6 +4,7 @@
 
 import 'package:flutter_tools/src/application_package.dart';
 import 'package:flutter_tools/src/asset.dart';
+import 'package:flutter_tools/src/base/dds.dart';
 import 'package:flutter_tools/src/build_info.dart';
 import 'package:flutter_tools/src/build_system/tools/shader_compiler.dart';
 import 'package:flutter_tools/src/compile.dart';
@@ -53,6 +54,9 @@ class FakeDevice extends Fake implements Device {
   bool disposed = false;
 
   @override
+  final DartDevelopmentService dds = FakeDartDevelopmentService();
+
+  @override
   bool isSupported() => true;
 
   @override
@@ -87,6 +91,15 @@ class FakeDevice extends Fake implements Device {
   @override
   Future<void> dispose() async {
     disposed = true;
+  }
+}
+
+class FakeDartDevelopmentService extends Fake implements DartDevelopmentService {
+  bool wasShutdown = false;
+
+  @override
+  void shutdown() {
+    wasShutdown = true;
   }
 }
 
@@ -150,12 +163,10 @@ class TestFlutterDevice extends FlutterDevice {
     GetSkSLMethod? getSkSLMethod,
     FlutterProject? flutterProject,
     PrintStructuredErrorLogMethod? printStructuredErrorLogMethod,
-    bool disableServiceAuthCodes = false,
-    bool enableDds = true,
-    bool cacheStartupProfile = false,
-    bool? ipv6 = false,
+    required DebuggingOptions debuggingOptions,
     int? hostVmServicePort,
-    int? ddsPort,
+    bool? ipv6 = false,
+    bool enableDevTools = false,
     bool allowExistingDdsInstance = false,
   }) async {
     throw exception;

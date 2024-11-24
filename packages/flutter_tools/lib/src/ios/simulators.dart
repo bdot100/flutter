@@ -26,6 +26,7 @@ import '../globals.dart' as globals;
 import '../macos/xcode.dart';
 import '../project.dart';
 import '../protocol_discovery.dart';
+import '../vmservice.dart';
 import 'application_package.dart';
 import 'mac.dart';
 import 'plist_parser.dart';
@@ -90,6 +91,7 @@ class IOSSimulatorUtils {
         name: name,
         simControl: _simControl,
         simulatorCategory: device.category,
+        logger: _simControl._logger,
       );
     }).whereType<IOSSimulator>().toList();
   }
@@ -356,6 +358,7 @@ class IOSSimulator extends Device {
       required this.name,
       required this.simulatorCategory,
       required SimControl simControl,
+      required super.logger,
     }) : _simControl = simControl,
          super(
            category: Category.mobile,
@@ -472,7 +475,6 @@ class IOSSimulator extends Device {
     required DebuggingOptions debuggingOptions,
     Map<String, Object?> platformArgs = const <String, Object?>{},
     bool prebuiltApplication = false,
-    bool ipv6 = false,
     String? userIdentifier,
   }) async {
     if (!prebuiltApplication && package is BuildableIOSApp) {
@@ -501,7 +503,7 @@ class IOSSimulator extends Device {
     if (debuggingOptions.debuggingEnabled) {
       vmServiceDiscovery = ProtocolDiscovery.vmService(
         getLogReader(app: package),
-        ipv6: ipv6,
+        ipv6: debuggingOptions.ipv6,
         hostPort: debuggingOptions.hostVmServicePort,
         devicePort: debuggingOptions.deviceVmServicePort,
         logger: globals.logger,
@@ -569,7 +571,6 @@ class IOSSimulator extends Device {
         buildResult,
         analytics: globals.analytics,
         fileSystem: globals.fs,
-        flutterUsage: globals.flutterUsage,
         logger: globals.logger,
         platform: SupportedPlatform.ios,
         project: app.project.parent,
@@ -1022,6 +1023,9 @@ class _IOSSimulatorLogReader extends DeviceLogReader {
   void dispose() {
     _stop();
   }
+
+  @override
+  Future<void> provideVmService(FlutterVmService connectedVmService) async { }
 }
 
 class _IOSSimulatorDevicePortForwarder extends DevicePortForwarder {

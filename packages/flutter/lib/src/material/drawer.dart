@@ -2,6 +2,18 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'package:flutter/gestures.dart';
+/// @docImport 'package:flutter/semantics.dart';
+///
+/// @docImport 'about.dart';
+/// @docImport 'app_bar.dart';
+/// @docImport 'color_scheme.dart';
+/// @docImport 'drawer_header.dart';
+/// @docImport 'icon_button.dart';
+/// @docImport 'navigation_drawer.dart';
+/// @docImport 'scaffold.dart';
+library;
+
 import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/widgets.dart';
 
@@ -456,6 +468,7 @@ class DrawerController extends StatefulWidget {
 ///
 /// Typically used by a [Scaffold] to [open] and [close] the drawer.
 class DrawerControllerState extends State<DrawerController> with SingleTickerProviderStateMixin {
+  @protected
   @override
   void initState() {
     super.initState();
@@ -469,6 +482,7 @@ class DrawerControllerState extends State<DrawerController> with SingleTickerPro
       ..addStatusListener(_animationStatusChanged);
   }
 
+  @protected
   @override
   void dispose() {
     _historyEntry?.remove();
@@ -477,12 +491,14 @@ class DrawerControllerState extends State<DrawerController> with SingleTickerPro
     super.dispose();
   }
 
+  @protected
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _scrimColorTween = _buildScrimColorTween();
   }
 
+  @protected
   @override
   void didUpdateWidget(DrawerController oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -626,19 +642,15 @@ class DrawerControllerState extends State<DrawerController> with SingleTickerPro
     );
   }
 
-  AlignmentDirectional get _drawerOuterAlignment {
-    return switch (widget.alignment) {
-      DrawerAlignment.start => AlignmentDirectional.centerStart,
-      DrawerAlignment.end   => AlignmentDirectional.centerEnd,
-    };
-  }
+  AlignmentDirectional get _drawerOuterAlignment => switch (widget.alignment) {
+    DrawerAlignment.start => AlignmentDirectional.centerStart,
+    DrawerAlignment.end   => AlignmentDirectional.centerEnd,
+  };
 
-  AlignmentDirectional get _drawerInnerAlignment {
-    return switch (widget.alignment) {
-      DrawerAlignment.start => AlignmentDirectional.centerEnd,
-      DrawerAlignment.end => AlignmentDirectional.centerStart,
-    };
-  }
+  AlignmentDirectional get _drawerInnerAlignment => switch (widget.alignment) {
+    DrawerAlignment.start => AlignmentDirectional.centerEnd,
+    DrawerAlignment.end => AlignmentDirectional.centerStart,
+  };
 
   Widget _buildDrawer(BuildContext context) {
     final bool isDesktop = switch (Theme.of(context).platform) {
@@ -743,6 +755,7 @@ class DrawerControllerState extends State<DrawerController> with SingleTickerPro
     }
   }
 
+  @protected
   @override
   Widget build(BuildContext context) {
     assert(debugCheckHasMaterialLocalizations(context));

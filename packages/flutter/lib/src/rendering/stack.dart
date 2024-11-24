@@ -2,6 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'package:flutter/widgets.dart';
+///
+/// @docImport 'flow.dart';
+/// @docImport 'proxy_box.dart';
+library;
+
 import 'dart:math' as math;
 import 'dart:ui' show lerpDouble;
 
@@ -573,7 +579,7 @@ class RenderStack extends RenderBox
   Size _computeSize({required BoxConstraints constraints, required ChildLayouter layoutChild}) {
     bool hasNonPositionedChildren = false;
     if (childCount == 0) {
-      return (constraints.biggest.isFinite) ? constraints.biggest : constraints.smallest;
+      return constraints.biggest.isFinite ? constraints.biggest : constraints.smallest;
     }
 
     double width = constraints.minWidth;

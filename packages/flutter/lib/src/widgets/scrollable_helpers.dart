@@ -2,6 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'package:flutter/material.dart';
+///
+/// @docImport 'overscroll_indicator.dart';
+/// @docImport 'viewport.dart';
+library;
+
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -150,7 +156,7 @@ class ScrollableDetails {
 ///
 /// The scroll velocity is controlled by the [velocityScalar]:
 ///
-/// velocity = <distance of overscroll> * [velocityScalar].
+/// velocity = (distance of overscroll) * [velocityScalar].
 class EdgeDraggingAutoScroller {
   /// Creates a auto scroller that scrolls the [scrollable].
   EdgeDraggingAutoScroller(
@@ -173,7 +179,7 @@ class EdgeDraggingAutoScroller {
   /// The velocity scalar per pixel over scroll.
   ///
   /// It represents how the velocity scale with the over scroll distance. The
-  /// auto-scroll velocity = <distance of overscroll> * velocityScalar.
+  /// auto-scroll velocity = (distance of overscroll) * velocityScalar.
   /// {@endtemplate}
   final double velocityScalar;
 
@@ -277,9 +283,7 @@ class EdgeDraggingAutoScroller {
       duration: duration,
       curve: Curves.linear,
     );
-    if (onScrollViewScrolled != null) {
-      onScrollViewScrolled!();
-    }
+    onScrollViewScrolled?.call();
     if (_scrolling) {
       await _scroll();
     }
@@ -456,17 +460,18 @@ class ScrollAction extends ContextAction<ScrollIntent> {
         return true;
       }());
 
-      if (primaryScrollController.position.context.notificationContext == null
-          && Scrollable.maybeOf(primaryScrollController.position.context.notificationContext!) == null) {
+      final BuildContext? notificationContext = primaryScrollController.position.context.notificationContext;
+      if (notificationContext != null) {
+        state = Scrollable.maybeOf(notificationContext);
+      }
+      if (state == null) {
         return;
       }
-      state = Scrollable.maybeOf(primaryScrollController.position.context.notificationContext!);
     }
-    assert(state != null, '$ScrollAction was invoked on a context that has no scrollable parent');
-    assert(state!.position.hasPixels, 'Scrollable must be laid out before it can be scrolled via a ScrollAction');
+    assert(state.position.hasPixels, 'Scrollable must be laid out before it can be scrolled via a ScrollAction');
 
     // Don't do anything if the user isn't allowed to scroll.
-    if (state!.resolvedPhysics != null && !state.resolvedPhysics!.shouldAcceptUserOffset(state.position)) {
+    if (state.resolvedPhysics != null && !state.resolvedPhysics!.shouldAcceptUserOffset(state.position)) {
       return;
     }
     final double increment = getDirectionalIncrement(state, intent);

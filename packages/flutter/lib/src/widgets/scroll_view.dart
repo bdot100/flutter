@@ -2,6 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'package:flutter/cupertino.dart';
+/// @docImport 'package:flutter/material.dart';
+/// @docImport 'package:flutter/widgets.dart';
+/// @docImport 'package:flutter_test/flutter_test.dart';
+library;
+
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
@@ -250,12 +256,7 @@ abstract class ScrollView extends StatelessWidget {
   /// [physics].
   final ScrollPhysics? physics;
 
-  /// {@macro flutter.widgets.shadow.scrollBehavior}
-  ///
-  /// [ScrollBehavior]s also provide [ScrollPhysics]. If an explicit
-  /// [ScrollPhysics] is provided in [physics], it will take precedence,
-  /// followed by [scrollBehavior], and then the inherited ancestor
-  /// [ScrollBehavior].
+  /// {@macro flutter.widgets.scrollable.scrollBehavior}
   final ScrollBehavior? scrollBehavior;
 
   /// {@template flutter.widgets.scroll_view.shrinkWrap}

@@ -2,6 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'page_storage.dart';
+/// @docImport 'primary_scroll_controller.dart';
+library;
+
 import 'package:flutter/foundation.dart';
 
 import 'basic.dart';
@@ -295,7 +299,7 @@ class AnimatedList extends _AnimatedScrollView {
 /// [AnimatedList] item input handlers can also refer to their [AnimatedListState]
 /// with the static [AnimatedList.of] method.
 class AnimatedListState extends _AnimatedScrollViewState<AnimatedList> {
-
+  @protected
   @override
   Widget build(BuildContext context) {
     return _wrap(
@@ -504,7 +508,7 @@ class AnimatedGrid extends _AnimatedScrollView {
 /// [AnimatedGrid] item input handlers can also refer to their [AnimatedGridState]
 /// with the static [AnimatedGrid.of] method.
 class AnimatedGridState extends _AnimatedScrollViewState<AnimatedGrid> {
-
+  @protected
   @override
   Widget build(BuildContext context) {
     return _wrap(
@@ -1036,7 +1040,7 @@ class SliverAnimatedList extends _SliverAnimatedMultiBoxAdaptor {
 /// [SliverAnimatedList] item input handlers can also refer to their
 /// [SliverAnimatedListState] with the static [SliverAnimatedList.of] method.
 class SliverAnimatedListState extends _SliverAnimatedMultiBoxAdaptorState<SliverAnimatedList> {
-
+  @protected
   @override
   Widget build(BuildContext context) {
     return SliverList(
@@ -1183,7 +1187,7 @@ class SliverAnimatedGrid extends _SliverAnimatedMultiBoxAdaptor {
 /// [SliverAnimatedGrid] item input handlers can also refer to their
 /// [SliverAnimatedGridState] with the static [SliverAnimatedGrid.of] method.
 class SliverAnimatedGridState extends _SliverAnimatedMultiBoxAdaptorState<SliverAnimatedGrid> {
-
+  @protected
   @override
   Widget build(BuildContext context) {
     return SliverGrid(

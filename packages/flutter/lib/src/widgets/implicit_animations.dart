@@ -2,6 +2,16 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'package:flutter/material.dart';
+///
+/// @docImport 'animated_cross_fade.dart';
+/// @docImport 'animated_size.dart';
+/// @docImport 'animated_switcher.dart';
+/// @docImport 'scroll_view.dart';
+/// @docImport 'sliver.dart';
+/// @docImport 'tween_animation_builder.dart';
+library;
+
 import 'dart:ui' as ui show TextHeightBehavior;
 
 import 'package:flutter/foundation.dart';
@@ -359,6 +369,7 @@ abstract class ImplicitlyAnimatedWidgetState<T extends ImplicitlyAnimatedWidget>
   Animation<double> get animation => _animation;
   late CurvedAnimation _animation = _createCurve();
 
+  @protected
   @override
   void initState() {
     super.initState();
@@ -371,6 +382,7 @@ abstract class ImplicitlyAnimatedWidgetState<T extends ImplicitlyAnimatedWidget>
     didUpdateTweens();
   }
 
+  @protected
   @override
   void didUpdateWidget(T oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -395,6 +407,7 @@ abstract class ImplicitlyAnimatedWidgetState<T extends ImplicitlyAnimatedWidget>
     return CurvedAnimation(parent: _controller, curve: widget.curve);
   }
 
+  @protected
   @override
   void dispose() {
     _animation.dispose();
@@ -544,6 +557,7 @@ abstract class ImplicitlyAnimatedWidgetState<T extends ImplicitlyAnimatedWidget>
 /// [AnimatedWidgetBaseState] to iterate through the subclasses' widget's fields
 /// and animate them.
 abstract class AnimatedWidgetBaseState<T extends ImplicitlyAnimatedWidget> extends ImplicitlyAnimatedWidgetState<T> {
+  @protected
   @override
   void initState() {
     super.initState();

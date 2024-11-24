@@ -2,6 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'bottom_navigation_bar.dart';
+/// @docImport 'navigation_rail.dart';
+/// @docImport 'scaffold.dart';
+library;
+
 import 'package:flutter/widgets.dart';
 
 import 'color_scheme.dart';
@@ -106,6 +111,8 @@ class NavigationBar extends StatelessWidget {
     this.height,
     this.labelBehavior,
     this.overlayColor,
+    this.labelTextStyle,
+    this.labelPadding,
   }) :  assert(destinations.length >= 2),
         assert(0 <= selectedIndex && selectedIndex < destinations.length);
 
@@ -218,6 +225,26 @@ class NavigationBar extends StatelessWidget {
   /// the [NavigationDestination] is focused, hovered, or pressed.
   final MaterialStateProperty<Color?>? overlayColor;
 
+  //// The text style of the label.
+  ///
+  /// If null, [NavigationBarThemeData.labelTextStyle] is used. If that
+  /// is also null, the default text style is [TextTheme.labelMedium] with
+  /// [ColorScheme.onSurface] when the destination is selected, and
+  /// [ColorScheme.onSurfaceVariant] when the destination is unselected, and
+  /// [ColorScheme.onSurfaceVariant] with an opacity of 0.38 when the
+  /// destination is disabled.
+  ///
+  /// If [ThemeData.useMaterial3] is false, then the default text style is
+  /// [TextTheme.labelSmall] with [ColorScheme.onSurface].
+  final MaterialStateProperty<TextStyle?>? labelTextStyle;
+
+  /// The padding around the [NavigationDestination.label] widget.
+  ///
+  /// When [labelPadding] is null, [NavigationBarThemeData.labelPadding]
+  /// is used. If that is also null, the default padding is 4 pixels on
+  /// the top.
+  final EdgeInsetsGeometry? labelPadding;
+
   VoidCallback _handleTap(int index) {
     return onDestinationSelected != null
       ? () => onDestinationSelected!(index)
@@ -262,6 +289,8 @@ class NavigationBar extends StatelessWidget {
                         indicatorShape: indicatorShape,
                         overlayColor: overlayColor,
                         onTap: _handleTap(i),
+                        labelTextStyle: labelTextStyle,
+                        labelPadding: labelPadding,
                         child: destinations[i],
                       );
                     },
@@ -332,7 +361,7 @@ class NavigationDestination extends StatelessWidget {
   /// selected.
   ///
   /// The icon will use [NavigationBarThemeData.iconTheme] with
-  /// [MaterialState.selected]. If this is null, the default [IconThemeData]
+  /// [WidgetState.selected]. If this is null, the default [IconThemeData]
   /// would use a size of 24.0 and [ColorScheme.onSurface].
   final Widget? selectedIcon;
 
@@ -412,12 +441,18 @@ class NavigationDestination extends StatelessWidget {
         );
       },
       buildLabel: (BuildContext context) {
-        final TextStyle? effectiveSelectedLabelTextStyle = navigationBarTheme.labelTextStyle?.resolve(selectedState)
+        final TextStyle? effectiveSelectedLabelTextStyle = info.labelTextStyle?.resolve(selectedState)
+          ?? navigationBarTheme.labelTextStyle?.resolve(selectedState)
           ?? defaults.labelTextStyle!.resolve(selectedState);
-        final TextStyle? effectiveUnselectedLabelTextStyle = navigationBarTheme.labelTextStyle?.resolve(unselectedState)
+        final TextStyle? effectiveUnselectedLabelTextStyle = info.labelTextStyle?.resolve(unselectedState)
+          ??  navigationBarTheme.labelTextStyle?.resolve(unselectedState)
           ?? defaults.labelTextStyle!.resolve(unselectedState);
-        final TextStyle? effectiveDisabledLabelTextStyle = navigationBarTheme.labelTextStyle?.resolve(disabledState)
+        final TextStyle? effectiveDisabledLabelTextStyle = info.labelTextStyle?.resolve(disabledState)
+          ?? navigationBarTheme.labelTextStyle?.resolve(disabledState)
           ?? defaults.labelTextStyle!.resolve(disabledState);
+        final EdgeInsetsGeometry labelPadding = info.labelPadding
+          ?? navigationBarTheme.labelPadding
+          ?? defaults.labelPadding!;
 
         final TextStyle? textStyle = enabled
           ? animation.isForwardOrCompleted
@@ -426,7 +461,7 @@ class NavigationDestination extends StatelessWidget {
           : effectiveDisabledLabelTextStyle;
 
         return Padding(
-          padding: const EdgeInsets.only(top: 4),
+          padding: labelPadding,
           child: MediaQuery.withClampedTextScaling(
             // Set maximum text scale factor to _kMaxLabelTextScaleFactor for the
             // label to keep the visual hierarchy the same even with larger font
@@ -587,6 +622,8 @@ class _NavigationDestinationInfo extends InheritedWidget {
     required this.indicatorShape,
     required this.overlayColor,
     required this.onTap,
+    this.labelTextStyle,
+    this.labelPadding,
     required super.child,
   });
 
@@ -663,6 +700,14 @@ class _NavigationDestinationInfo extends InheritedWidget {
   /// This is computed by calling [NavigationBar.onDestinationSelected]
   /// with [index] passed in.
   final VoidCallback onTap;
+
+  /// The text style of the label.
+  final MaterialStateProperty<TextStyle?>? labelTextStyle;
+
+  /// The padding around the [label] widget.
+  ///
+  /// Defaults to a padding of 4 pixels on the top.
+  final EdgeInsetsGeometry? labelPadding;
 
   /// Returns a non null [_NavigationDestinationInfo].
   ///
@@ -1224,8 +1269,8 @@ class _SelectableAnimatedBuilderState extends State<_SelectableAnimatedBuilder>
 /// Watches [animation] and calls [builder] with the appropriate [Curve]
 /// depending on the direction of the [animation] status.
 ///
-/// If [animation.status] is forward or complete, [curve] is used. If
-/// [animation.status] is reverse or dismissed, [reverseCurve] is used.
+/// If [Animation.status] is forward or complete, [curve] is used. If
+/// [Animation.status] is reverse or dismissed, [reverseCurve] is used.
 ///
 /// If the [animation] changes direction while it is already running, the curve
 /// used will not change, this will keep the animations smooth until it
@@ -1308,32 +1353,39 @@ NavigationBarThemeData _defaultsFor(BuildContext context) {
 // Hand coded defaults based on Material Design 2.
 class _NavigationBarDefaultsM2 extends NavigationBarThemeData {
   _NavigationBarDefaultsM2(BuildContext context)
-      : _theme = Theme.of(context),
-        _colors = Theme.of(context).colorScheme,
-        super(
-          height: 80.0,
-          elevation: 0.0,
-          indicatorShape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        );
+    : _theme = Theme.of(context),
+      _colors = Theme.of(context).colorScheme,
+      super(
+        height: 80.0,
+        elevation: 0.0,
+        indicatorShape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      );
 
   final ThemeData _theme;
   final ColorScheme _colors;
 
   // With Material 2, the NavigationBar uses an overlay blend for the
   // default color regardless of light/dark mode.
-  @override Color? get backgroundColor => ElevationOverlay.colorWithOverlay(_colors.surface, _colors.onSurface, 3.0);
+  @override
+  Color? get backgroundColor => ElevationOverlay.colorWithOverlay(_colors.surface, _colors.onSurface, 3.0);
 
-  @override MaterialStateProperty<IconThemeData?>? get iconTheme {
+  @override
+  MaterialStateProperty<IconThemeData?>? get iconTheme {
     return MaterialStatePropertyAll<IconThemeData>(IconThemeData(
       size: 24,
       color: _colors.onSurface,
     ));
   }
 
-  @override Color? get indicatorColor => _colors.secondary.withOpacity(0.24);
+  @override
+  Color? get indicatorColor => _colors.secondary.withOpacity(0.24);
 
-  @override MaterialStateProperty<TextStyle?>? get labelTextStyle => MaterialStatePropertyAll<TextStyle?>(_theme.textTheme.labelSmall!.copyWith(color: _colors.onSurface));
+  @override
+  MaterialStateProperty<TextStyle?>? get labelTextStyle => MaterialStatePropertyAll<TextStyle?>(_theme.textTheme.labelSmall!.copyWith(color: _colors.onSurface));
+
+  @override
+  EdgeInsetsGeometry? get labelPadding => const EdgeInsets.only(top: 4);
 }
 
 // BEGIN GENERATED TOKEN PROPERTIES - NavigationBar
@@ -1345,23 +1397,27 @@ class _NavigationBarDefaultsM2 extends NavigationBarThemeData {
 
 class _NavigationBarDefaultsM3 extends NavigationBarThemeData {
   _NavigationBarDefaultsM3(this.context)
-      : super(
-          height: 80.0,
-          elevation: 3.0,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        );
+    : super(
+        height: 80.0,
+        elevation: 3.0,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      );
 
   final BuildContext context;
   late final ColorScheme _colors = Theme.of(context).colorScheme;
   late final TextTheme _textTheme = Theme.of(context).textTheme;
 
-  @override Color? get backgroundColor => _colors.surfaceContainer;
+  @override
+  Color? get backgroundColor => _colors.surfaceContainer;
 
-  @override Color? get shadowColor => Colors.transparent;
+  @override
+  Color? get shadowColor => Colors.transparent;
 
-  @override Color? get surfaceTintColor => Colors.transparent;
+  @override
+  Color? get surfaceTintColor => Colors.transparent;
 
-  @override MaterialStateProperty<IconThemeData?>? get iconTheme {
+  @override
+  MaterialStateProperty<IconThemeData?>? get iconTheme {
     return MaterialStateProperty.resolveWith((Set<MaterialState> states) {
       return IconThemeData(
         size: 24.0,
@@ -1374,10 +1430,14 @@ class _NavigationBarDefaultsM3 extends NavigationBarThemeData {
     });
   }
 
-  @override Color? get indicatorColor => _colors.secondaryContainer;
-  @override ShapeBorder? get indicatorShape => const StadiumBorder();
+  @override
+  Color? get indicatorColor => _colors.secondaryContainer;
 
-  @override MaterialStateProperty<TextStyle?>? get labelTextStyle {
+  @override
+  ShapeBorder? get indicatorShape => const StadiumBorder();
+
+  @override
+  MaterialStateProperty<TextStyle?>? get labelTextStyle {
     return MaterialStateProperty.resolveWith((Set<MaterialState> states) {
     final TextStyle style = _textTheme.labelMedium!;
       return style.apply(
@@ -1389,6 +1449,9 @@ class _NavigationBarDefaultsM3 extends NavigationBarThemeData {
       );
     });
   }
+
+  @override
+  EdgeInsetsGeometry? get labelPadding => const EdgeInsets.only(top: 4);
 }
 
 // END GENERATED TOKEN PROPERTIES - NavigationBar

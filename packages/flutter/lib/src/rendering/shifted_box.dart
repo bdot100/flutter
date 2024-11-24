@@ -2,6 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'package:flutter/widgets.dart';
+///
+/// @docImport 'proxy_box.dart';
+library;
+
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -665,14 +670,12 @@ class RenderConstrainedOverflowBox extends RenderAligningShiftedBox {
   }
 
   @override
-  bool get sizedByParent {
-    return switch (fit) {
-      OverflowBoxFit.max => true,
-      // If deferToChild, the size will be as small as its child when non-overflowing,
-      // thus it cannot be sizedByParent.
-      OverflowBoxFit.deferToChild => false,
-    };
-  }
+  bool get sizedByParent => switch (fit) {
+    OverflowBoxFit.max => true,
+    // If deferToChild, the size will be as small as its child when non-overflowing,
+    // thus it cannot be sizedByParent.
+    OverflowBoxFit.deferToChild => false,
+  };
 
   @override
   @protected

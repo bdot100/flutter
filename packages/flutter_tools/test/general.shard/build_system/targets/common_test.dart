@@ -12,6 +12,7 @@ import 'package:flutter_tools/src/build_system/build_system.dart';
 import 'package:flutter_tools/src/build_system/exceptions.dart';
 import 'package:flutter_tools/src/build_system/targets/common.dart';
 import 'package:flutter_tools/src/build_system/targets/ios.dart';
+import 'package:flutter_tools/src/build_system/targets/native_assets.dart';
 import 'package:flutter_tools/src/compile.dart';
 
 import '../../../src/common.dart';
@@ -104,7 +105,6 @@ native-assets:
     processManager.addCommands(<FakeCommand>[
       FakeCommand(command: <String>[
         artifacts.getArtifactPath(Artifact.engineDartAotRuntime),
-        '--disable-dart-dev',
         artifacts.getArtifactPath(Artifact.frontendServerSnapshotForEngineDartSdk),
         '--sdk-root',
         '$flutterPatchedSdkPath/',
@@ -144,7 +144,6 @@ native-assets:
     processManager.addCommands(<FakeCommand>[
       FakeCommand(command: <String>[
         artifacts.getArtifactPath(Artifact.engineDartAotRuntime),
-        '--disable-dart-dev',
         artifacts.getArtifactPath(Artifact.frontendServerSnapshotForEngineDartSdk),
         '--sdk-root',
         '$flutterPatchedSdkPath/',
@@ -185,7 +184,6 @@ native-assets:
     processManager.addCommands(<FakeCommand>[
       FakeCommand(command: <String>[
         artifacts.getArtifactPath(Artifact.engineDartAotRuntime),
-        '--disable-dart-dev',
         artifacts.getArtifactPath(Artifact.frontendServerSnapshotForEngineDartSdk),
         '--sdk-root',
         '$flutterPatchedSdkPath/',
@@ -227,7 +225,6 @@ native-assets:
     processManager.addCommands(<FakeCommand>[
       FakeCommand(command: <String>[
         artifacts.getArtifactPath(Artifact.engineDartBinary),
-        '--disable-dart-dev',
         'path/to/frontend_server_starter.dart',
         '--sdk-root',
         '$flutterPatchedSdkPath/',
@@ -269,7 +266,6 @@ native-assets:
     processManager.addCommands(<FakeCommand>[
       FakeCommand(command: <String>[
         artifacts.getArtifactPath(Artifact.engineDartAotRuntime),
-        '--disable-dart-dev',
         artifacts.getArtifactPath(Artifact.frontendServerSnapshotForEngineDartSdk),
         '--sdk-root',
         '$flutterPatchedSdkPath/',
@@ -314,7 +310,6 @@ native-assets:
     processManager.addCommands(<FakeCommand>[
       FakeCommand(command: <String>[
         artifacts.getArtifactPath(Artifact.engineDartAotRuntime),
-        '--disable-dart-dev',
         artifacts.getArtifactPath(Artifact.frontendServerSnapshotForEngineDartSdk),
         '--sdk-root',
         '$flutterPatchedSdkPath/',
@@ -356,7 +351,6 @@ native-assets:
     processManager.addCommands(<FakeCommand>[
       FakeCommand(command: <String>[
         artifacts.getArtifactPath(Artifact.engineDartAotRuntime),
-        '--disable-dart-dev',
         artifacts.getArtifactPath(Artifact.frontendServerSnapshotForEngineDartSdk),
         '--sdk-root',
         '$flutterPatchedSdkPath/',
@@ -410,7 +404,6 @@ native-assets:
     processManager.addCommands(<FakeCommand>[
       FakeCommand(command: <String>[
         artifacts.getArtifactPath(Artifact.engineDartAotRuntime),
-        '--disable-dart-dev',
         artifacts.getArtifactPath(Artifact.frontendServerSnapshotForEngineDartSdk),
         '--sdk-root',
         '$flutterPatchedSdkPath/',
@@ -445,7 +438,7 @@ native-assets:
         fileSystem.file('.dart_tool/package_config.json')
           ..createSync(recursive: true)
           ..writeAsStringSync('{"configVersion": 2, "packages":[]}');
-        androidEnvironment.buildDir.childFile('native_assets.yaml')
+        androidEnvironment.buildDir.childFile(InstallCodeAssets.nativeAssetsFilename)
           ..createSync(recursive: true)
           ..writeAsStringSync(empty ? emptyNativeAssets : nonEmptyNativeAssets);
         final String build = androidEnvironment.buildDir.path;
@@ -458,7 +451,6 @@ native-assets:
           if (!empty)
             FakeCommand(command: <String>[
               artifacts.getArtifactPath(Artifact.engineDartAotRuntime),
-              '--disable-dart-dev',
               artifacts.getArtifactPath(Artifact.frontendServerSnapshotForEngineDartSdk),
               '--sdk-root',
               '$flutterPatchedSdkPath/',
@@ -472,7 +464,7 @@ native-assets:
               '--output-dill',
               '$build/native_assets.dill',
               '--native-assets',
-              '$build/native_assets.yaml',
+              '$build/${InstallCodeAssets.nativeAssetsFilename}',
               '--verbosity=error',
               '--native-assets-only',
             ], stdout: 'result $kBoundaryKey\n$kBoundaryKey\n$kBoundaryKey $build/app.dill 0\n'),

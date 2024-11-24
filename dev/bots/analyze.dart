@@ -22,6 +22,7 @@ import 'custom_rules/analyze.dart';
 import 'custom_rules/avoid_future_catcherror.dart';
 import 'custom_rules/no_double_clamp.dart';
 import 'custom_rules/no_stop_watches.dart';
+import 'custom_rules/protect_public_state_subtypes.dart';
 import 'custom_rules/render_box_intrinsics.dart';
 import 'run_command.dart';
 import 'utils.dart';
@@ -180,12 +181,17 @@ Future<void> run(List<String> arguments) async {
     // Only run the private lints when the code is free of type errors. The
     // lints are easier to write when they can assume, for example, there is no
     // inheritance cycles.
-    final List<AnalyzeRule> rules = <AnalyzeRule>[noDoubleClamp, noStopwatches, renderBoxIntrinsicCalculation];
+    final List<AnalyzeRule> rules = <AnalyzeRule>[
+      noDoubleClamp,
+      noStopwatches,
+      renderBoxIntrinsicCalculation,
+      protectPublicStateSubtypes,
+    ];
     final String ruleNames = rules.map((AnalyzeRule rule) => '\n * $rule').join();
     printProgress('Analyzing code in the framework with the following rules:$ruleNames');
     await analyzeWithRules(flutterRoot, rules,
-      includePaths: <String>['packages/flutter/lib'],
-      excludePaths: <String>['packages/flutter/lib/fix_data'],
+      includePaths: const <String>['packages/flutter/lib'],
+      excludePaths: const <String>['packages/flutter/lib/fix_data'],
     );
     final List<AnalyzeRule> testRules = <AnalyzeRule>[noStopwatches];
     final String testRuleNames = testRules.map((AnalyzeRule rule) => '\n * $rule').join();
@@ -196,7 +202,14 @@ Future<void> run(List<String> arguments) async {
     final List<AnalyzeRule> toolRules = <AnalyzeRule>[AvoidFutureCatchError()];
     final String toolRuleNames = toolRules.map((AnalyzeRule rule) => '\n * $rule').join();
     printProgress('Analyzing code in the tool with the following rules:$toolRuleNames');
-    await analyzeToolWithRules(flutterRoot, toolRules);
+    await analyzeWithRules(
+      flutterRoot,
+      toolRules,
+      includePaths: const <String>[
+        'packages/flutter_tools/lib',
+        'packages/flutter_tools/test',
+      ],
+    );
   } else {
     printProgress('Skipped performing further analysis in the framework because "flutter analyze" finished with a non-zero exit code.');
   }
@@ -905,9 +918,8 @@ Future<void> verifyNoTestImports(String workingDirectory) async {
   }
   // Fail if any errors
   if (errors.isNotEmpty) {
-    final String s = errors.length == 1 ? '' : 's';
     foundError(<String>[
-      '${bold}The following file$s import a test directly. Test utilities should be in their own file.$reset',
+      '${bold}The following file(s) import a test directly. Test utilities should be in their own file.$reset',
       ...errors,
     ]);
   }
@@ -2114,7 +2126,8 @@ Future<void> lintKotlinFiles(String workingDirectory) async {
         'To reproduce this lint locally:\n'
         '1. Identify the CIPD version tag used to resolve this particular version of ktlint (check the dependencies section of this shard in the ci.yaml). \n'
         '2. Download that version from https://chrome-infra-packages.appspot.com/p/flutter/ktlint/linux-amd64/+/<version_tag>\n'
-        '3. From the repository root, run `<path_to_ktlint>/ktlint --editorconfig=$editorConfigRelativePath --baseline=$baselineRelativePath`';
+        '3. From the repository root, run `<path_to_ktlint>/ktlint --editorconfig=$editorConfigRelativePath --baseline=$baselineRelativePath`\n'
+        'Alternatively, if you use Android Studio, follow the docs at docs/platforms/android/Kotlin-android-studio-formatting.md to enable auto formatting.';
     foundError(<String>[errorMessage]);
   }
 }
@@ -2210,6 +2223,7 @@ Future<CommandResult> _runFlutterAnalyze(String workingDirectory, {
 const Set<String> kExecutableAllowlist = <String>{
   'bin/dart',
   'bin/flutter',
+  'bin/flutter-dev',
   'bin/internal/update_dart_sdk.sh',
 
   'dev/bots/accept_android_sdk_licenses.sh',
@@ -2231,6 +2245,7 @@ const Set<String> kExecutableAllowlist = <String>{
 
   'dev/tools/gen_keycodes/bin/gen_keycodes',
   'dev/tools/repackage_gradle_wrapper.sh',
+  'dev/tools/bin/engine_hash.sh',
 
   'packages/flutter_tools/bin/macos_assemble.sh',
   'packages/flutter_tools/bin/tool_backend.sh',

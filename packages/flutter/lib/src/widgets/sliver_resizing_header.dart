@@ -2,6 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'pinned_header_sliver.dart';
+/// @docImport 'scroll_view.dart';
+/// @docImport 'sliver_floating_header.dart';
+/// @docImport 'sliver_persistent_header.dart';
+library;
+
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -22,7 +28,7 @@ import 'slotted_render_object_widget.dart';
 ///
 /// If the [minExtentPrototype] is null, then the default minimum extent is 0. If
 /// [maxExtentPrototype] is null then the default maximum extent is based on the child's
-/// intrisic size.
+/// intrinsic size.
 ///
 /// This sliver is preferable to the general purpose [SliverPersistentHeader]
 /// for its relatively narrow use case because there's no need to create a
@@ -41,6 +47,8 @@ import 'slotted_render_object_widget.dart';
 ///
 ///  * [PinnedHeaderSliver] - which just pins the header at the top
 ///    of the [CustomScrollView].
+///  * [SliverFloatingHeader] - which animates the header in and out of view
+///    in response to downward and upwards scrolls.
 ///  * [SliverPersistentHeader] - a general purpose header that can be
 ///    configured as a pinned, resizing, or floating header.
 class SliverResizingHeader extends StatelessWidget {
@@ -128,13 +136,11 @@ class _RenderSliverResizingHeader extends RenderSliver with SlottedContainerRend
   RenderBox? get child => childForSlot(_Slot.child);
 
   @override
-  Iterable<RenderBox> get children {
-    return <RenderBox>[
-      if (minExtentPrototype != null) minExtentPrototype!,
-      if (maxExtentPrototype != null) maxExtentPrototype!,
-      if (child != null) child!,
-    ];
-  }
+  Iterable<RenderBox> get children => <RenderBox>[
+    if (minExtentPrototype != null) minExtentPrototype!,
+    if (maxExtentPrototype != null) maxExtentPrototype!,
+    if (child != null) child!,
+  ];
 
   double boxExtent(RenderBox box) {
     assert(box.hasSize);

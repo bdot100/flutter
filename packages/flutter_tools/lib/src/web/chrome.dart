@@ -216,6 +216,12 @@ class ChromiumLauncher {
       '--no-default-browser-check',
       '--disable-default-apps',
       '--disable-translate',
+
+      // Remove the search engine choice screen. It's irrelevant for app
+      // debugging purposes.
+      // See: https://github.com/flutter/flutter/issues/153928
+      '--disable-search-engine-choice-screen',
+
       if (headless)
         ...<String>[
           '--headless',
@@ -307,7 +313,7 @@ class ChromiumLauncher {
           if (retry >= kMaxRetries) {
             errors.forEach(_logger.printError);
             _logger.printError('Failed to launch browser after $kMaxRetries tries. Command used to launch it: ${args.join(' ')}');
-            throw ToolExit(
+            throwToolExit(
               'Failed to launch browser. Make sure you are using an up-to-date '
               'Chrome or Edge. Otherwise, consider using -d web-server instead '
               'and filing an issue at https://github.com/flutter/flutter/issues.',
@@ -492,6 +498,10 @@ class Chromium {
         if (i == attempts) {
           rethrow;
         }
+      } on IOException {
+        if (i == attempts) {
+          rethrow;
+        }
       }
       await Future<void>.delayed(const Duration(milliseconds: 25));
     }
@@ -509,13 +519,18 @@ class Chromium {
     // Send a command to shut down the browser cleanly.
     Duration sigtermDelay = Duration.zero;
     if (_hasValidChromeConnection) {
-      final ChromeTab? tab = await getChromeTabGuarded(chromeConnection,
+      try {
+        final ChromeTab? tab = await getChromeTabGuarded(chromeConnection,
             (_) => true, retryFor: const Duration(seconds: 1));
-      if (tab != null) {
-        final WipConnection wipConnection = await tab.connect();
-        await wipConnection.sendCommand('Browser.close');
-        await wipConnection.close();
-        sigtermDelay = const Duration(seconds: 1);
+        if (tab != null) {
+          final WipConnection wipConnection = await tab.connect();
+          await wipConnection.sendCommand('Browser.close');
+          await wipConnection.close();
+          sigtermDelay = const Duration(seconds: 1);
+        }
+      } on IOException {
+        // Chrome is not responding to the debug protocol and probably has
+        // already been closed.
       }
     }
     chromeConnection.close();
@@ -548,6 +563,7 @@ class Chromium {
     });
   }
 }
+
 
 /// Wrapper for [ChromeConnection.getTab] that will catch any [IOException] or
 /// [StateError], delegate it to the [onIoError] callback, and return null.

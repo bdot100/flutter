@@ -231,83 +231,6 @@ Finder findTooltipContainer(String tooltipText) {
 }
 
 void main() {
-  testWidgets('M2 Chip defaults', (WidgetTester tester) async {
-    late TextTheme textTheme;
-
-    Widget buildFrame(Brightness brightness) {
-      return MaterialApp(
-        theme: ThemeData(brightness: brightness, useMaterial3: false),
-        home: Scaffold(
-          body: Center(
-            child: Builder(
-              builder: (BuildContext context) {
-                textTheme = Theme.of(context).textTheme;
-                return Chip(
-                  avatar: const CircleAvatar(child: Text('A')),
-                  label: const Text('Chip A'),
-                  onDeleted: () { },
-                );
-              },
-            ),
-          ),
-        ),
-      );
-    }
-
-    await tester.pumpWidget(buildFrame(Brightness.light));
-    expect(getMaterialBox(tester), paints..rrect()..circle(color: const Color(0xff1976d2)));
-    expect(tester.getSize(find.byType(Chip)), const Size(156.0, 48.0));
-    expect(getMaterial(tester).color, null);
-    expect(getMaterial(tester).elevation, 0);
-    expect(getMaterial(tester).shape, const StadiumBorder());
-    expect(getIconData(tester).color?.value, 0xffffffff);
-    expect(getIconData(tester).opacity, null);
-    expect(getIconData(tester).size, null);
-
-    TextStyle labelStyle = getLabelStyle(tester, 'Chip A').style;
-    expect(labelStyle.color?.value, 0xde000000);
-    expect(labelStyle.fontFamily, textTheme.bodyLarge?.fontFamily);
-    expect(labelStyle.fontFamilyFallback, textTheme.bodyLarge?.fontFamilyFallback);
-    expect(labelStyle.fontFeatures, textTheme.bodyLarge?.fontFeatures);
-    expect(labelStyle.fontSize, textTheme.bodyLarge?.fontSize);
-    expect(labelStyle.fontStyle, textTheme.bodyLarge?.fontStyle);
-    expect(labelStyle.fontWeight, textTheme.bodyLarge?.fontWeight);
-    expect(labelStyle.height, textTheme.bodyLarge?.height);
-    expect(labelStyle.inherit, textTheme.bodyLarge?.inherit);
-    expect(labelStyle.leadingDistribution, textTheme.bodyLarge?.leadingDistribution);
-    expect(labelStyle.letterSpacing, textTheme.bodyLarge?.letterSpacing);
-    expect(labelStyle.overflow, textTheme.bodyLarge?.overflow);
-    expect(labelStyle.textBaseline, textTheme.bodyLarge?.textBaseline);
-    expect(labelStyle.wordSpacing, textTheme.bodyLarge?.wordSpacing);
-
-    await tester.pumpWidget(buildFrame(Brightness.dark));
-    await tester.pumpAndSettle(); // Theme transition animation
-    expect(getMaterialBox(tester), paints..rrect(color: const Color(0x1fffffff)));
-    expect(tester.getSize(find.byType(Chip)), const Size(156.0, 48.0));
-    expect(getMaterial(tester).color, null);
-    expect(getMaterial(tester).elevation, 0);
-    expect(getMaterial(tester).shape, const StadiumBorder());
-    expect(getIconData(tester).color?.value, 0xffffffff);
-    expect(getIconData(tester).opacity, null);
-    expect(getIconData(tester).size, null);
-
-    labelStyle = getLabelStyle(tester, 'Chip A').style;
-    expect(labelStyle.color?.value, 0xdeffffff);
-    expect(labelStyle.fontFamily, textTheme.bodyLarge?.fontFamily);
-    expect(labelStyle.fontFamilyFallback, textTheme.bodyLarge?.fontFamilyFallback);
-    expect(labelStyle.fontFeatures, textTheme.bodyLarge?.fontFeatures);
-    expect(labelStyle.fontSize, textTheme.bodyLarge?.fontSize);
-    expect(labelStyle.fontStyle, textTheme.bodyLarge?.fontStyle);
-    expect(labelStyle.fontWeight, textTheme.bodyLarge?.fontWeight);
-    expect(labelStyle.height, textTheme.bodyLarge?.height);
-    expect(labelStyle.inherit, textTheme.bodyLarge?.inherit);
-    expect(labelStyle.leadingDistribution, textTheme.bodyLarge?.leadingDistribution);
-    expect(labelStyle.letterSpacing, textTheme.bodyLarge?.letterSpacing);
-    expect(labelStyle.overflow, textTheme.bodyLarge?.overflow);
-    expect(labelStyle.textBaseline, textTheme.bodyLarge?.textBaseline);
-    expect(labelStyle.wordSpacing, textTheme.bodyLarge?.wordSpacing);
-  });
-
   testWidgets('M3 Chip defaults', (WidgetTester tester) async {
     late TextTheme textTheme;
     final ThemeData lightTheme = ThemeData.light();
@@ -337,7 +260,7 @@ void main() {
     expect(getMaterial(tester).color, null);
     expect(getMaterial(tester).elevation, 0);
     expect(getMaterial(tester).shape, RoundedRectangleBorder(
-      side: BorderSide(color: lightTheme.colorScheme.outline),
+      side: BorderSide(color: lightTheme.colorScheme.outlineVariant),
       borderRadius: BorderRadius.circular(8.0),
     ));
     expect(getIconData(tester).color, lightTheme.colorScheme.primary);
@@ -365,7 +288,7 @@ void main() {
     expect(getMaterial(tester).color, null);
     expect(getMaterial(tester).elevation, 0);
     expect(getMaterial(tester).shape, RoundedRectangleBorder(
-      side: BorderSide(color: darkTheme.colorScheme.outline),
+      side: BorderSide(color: darkTheme.colorScheme.outlineVariant),
       borderRadius: BorderRadius.circular(8.0),
     ));
     expect(getIconData(tester).color, darkTheme.colorScheme.primary);
@@ -2916,6 +2839,7 @@ void main() {
                             label: 'test',
                             textDirection: TextDirection.ltr,
                             flags: <SemanticsFlag>[
+                              SemanticsFlag.hasSelectedState,
                               SemanticsFlag.hasEnabledState,
                               SemanticsFlag.isButton,
                             ],
@@ -2965,6 +2889,7 @@ void main() {
                             label: 'test',
                             textDirection: TextDirection.ltr,
                             flags: <SemanticsFlag>[
+                              SemanticsFlag.hasSelectedState,
                               SemanticsFlag.hasEnabledState,
                               SemanticsFlag.isButton,
                             ],
@@ -3025,6 +2950,7 @@ void main() {
                             label: 'test',
                             textDirection: TextDirection.ltr,
                             flags: <SemanticsFlag>[
+                              SemanticsFlag.hasSelectedState,
                               SemanticsFlag.hasEnabledState,
                               SemanticsFlag.isButton,
                               SemanticsFlag.isEnabled,
@@ -3083,6 +3009,7 @@ void main() {
                             label: 'test',
                             textDirection: TextDirection.ltr,
                             flags: <SemanticsFlag>[
+                              SemanticsFlag.hasSelectedState,
                               SemanticsFlag.hasEnabledState,
                               SemanticsFlag.isButton,
                               SemanticsFlag.isEnabled,
@@ -3139,6 +3066,7 @@ void main() {
                               SemanticsFlag.isButton,
                               SemanticsFlag.isEnabled,
                               SemanticsFlag.isFocusable,
+                              SemanticsFlag.hasSelectedState,
                               SemanticsFlag.isSelected,
                             ],
                             actions: <SemanticsAction>[SemanticsAction.tap, SemanticsAction.focus],
@@ -3190,6 +3118,7 @@ void main() {
                             label: 'test',
                             textDirection: TextDirection.ltr,
                             flags: <SemanticsFlag>[
+                              SemanticsFlag.hasSelectedState,
                               SemanticsFlag.hasEnabledState,
                               SemanticsFlag.isButton,
                             ],
@@ -3240,7 +3169,10 @@ void main() {
                           TestSemantics(
                             label: 'test',
                             textDirection: TextDirection.ltr,
-                            flags: <SemanticsFlag>[], // Must not be a button when tapping is disabled.
+                            // Must not be a button when tapping is disabled.
+                            flags: <SemanticsFlag>[
+                              SemanticsFlag.hasSelectedState
+                            ],
                             actions: <SemanticsAction>[],
                           ),
                         ],
@@ -3290,6 +3222,7 @@ void main() {
                             label: 'test',
                             textDirection: TextDirection.ltr,
                             flags: <SemanticsFlag>[
+                              SemanticsFlag.hasSelectedState,
                               SemanticsFlag.hasEnabledState,
                               SemanticsFlag.isButton,
                               SemanticsFlag.isEnabled,
@@ -3342,6 +3275,7 @@ void main() {
                             label: 'test',
                             textDirection: TextDirection.ltr,
                             flags: <SemanticsFlag>[
+                              SemanticsFlag.hasSelectedState,
                               SemanticsFlag.hasEnabledState,
                               SemanticsFlag.isButton,
                             ],
@@ -4484,7 +4418,7 @@ void main() {
     expect(box.size, equals(const Size(128, 32.0 + 16.0)));
     expect(textBox.size, equals(const Size(56, 14)));
     expect(iconBox.size, equals(const Size(18, 18)));
-    expect(avatarBox.size, equals(const Size(24, 24)));
+    expect(avatarBox.size, equals(const Size(18, 18)));
     expect(textBox.top, equals(17));
     expect(box.bottom - textBox.bottom, equals(17));
     expect(textBox.left, equals(372));
@@ -4499,7 +4433,7 @@ void main() {
     expect(box.size, equals(const Size(128, 60)));
     expect(textBox.size, equals(const Size(56, 14)));
     expect(iconBox.size, equals(const Size(18, 18)));
-    expect(avatarBox.size, equals(const Size(24, 24)));
+    expect(avatarBox.size, equals(const Size(18, 18)));
     expect(textBox.top, equals(23));
     expect(box.bottom - textBox.bottom, equals(23));
     expect(textBox.left, equals(372));
@@ -4514,7 +4448,7 @@ void main() {
     expect(box.size, equals(const Size(128, 36)));
     expect(textBox.size, equals(const Size(56, 14)));
     expect(iconBox.size, equals(const Size(18, 18)));
-    expect(avatarBox.size, equals(const Size(24, 24)));
+    expect(avatarBox.size, equals(const Size(18, 18)));
     expect(textBox.top, equals(11));
     expect(box.bottom - textBox.bottom, equals(11));
     expect(textBox.left, equals(372));
@@ -4531,7 +4465,7 @@ void main() {
     expect(box.size, equals(const Size(128, 36)));
     expect(textBox.size, equals(const Size(56, 14)));
     expect(iconBox.size, equals(const Size(18, 18)));
-    expect(avatarBox.size, equals(const Size(24, 24)));
+    expect(avatarBox.size, equals(const Size(18, 18)));
     expect(textBox.top, equals(11));
     expect(box.bottom - textBox.bottom, equals(11));
     expect(textBox.left, equals(372));
@@ -4799,7 +4733,7 @@ void main() {
     ));
     final ShapeDecoration decoration = ink.decoration! as ShapeDecoration;
     expect(decoration.color, backgroundColor);
-    expect(decoration.shape, shape.copyWith(side: BorderSide(color: theme.colorScheme.outline)));
+    expect(decoration.shape, shape.copyWith(side: BorderSide(color: theme.colorScheme.outlineVariant)));
   });
 
   testWidgets('Chip highlight color is drawn on top of the backgroundColor', (WidgetTester tester) async {
@@ -4987,7 +4921,7 @@ void main() {
     // Chip should have the default side.
     expect(
       getMaterial(tester).shape,
-      StadiumBorder(side: BorderSide(color: theme.colorScheme.outline)),
+      StadiumBorder(side: BorderSide(color: theme.colorScheme.outlineVariant)),
     );
   });
 
@@ -5489,9 +5423,9 @@ void main() {
       expect(getMaterial(tester).color, null);
       expect(getMaterial(tester).elevation, 0);
       expect(getMaterial(tester).shape, const StadiumBorder());
-      expect(getIconData(tester).color?.value, 0xffffffff);
+      expect(getIconData(tester).color, const Color(0xdd000000));
       expect(getIconData(tester).opacity, null);
-      expect(getIconData(tester).size, null);
+      expect(getIconData(tester).size, 18.0);
 
       TextStyle labelStyle = getLabelStyle(tester, 'Chip A').style;
       expect(labelStyle.color?.value, 0xde000000);
@@ -5518,7 +5452,7 @@ void main() {
       expect(getMaterial(tester).shape, const StadiumBorder());
       expect(getIconData(tester).color?.value, 0xffffffff);
       expect(getIconData(tester).opacity, null);
-      expect(getIconData(tester).size, null);
+      expect(getIconData(tester).size, 18.0);
 
       labelStyle = getLabelStyle(tester, 'Chip A').style;
       expect(labelStyle.color?.value, 0xdeffffff);
@@ -5990,7 +5924,7 @@ void main() {
       ),
     );
 
-    // Test the chechmark is not visible yet.
+    // Test the checkmark is not visible yet.
     expect(materialBox, isNot(paints..path(color:checkmarkColor)));
     expect(tester.getSize(find.byType(RawChip)).width, closeTo(132.6, 0.1));
 
@@ -6104,6 +6038,49 @@ void main() {
     ));
 
     expect(tester.widget<RawChip>(find.byType(RawChip)).chipAnimationStyle, chipAnimationStyle);
+  });
+
+  // Regression test for https://github.com/flutter/flutter/issues/157622.
+  testWidgets('Chip does not glitch on hover when providing ThemeData.hoverColor', (WidgetTester tester) async {
+    const Color themeDataHoverColor = Color(0xffff0000);
+    const Color hoverColor = Color(0xff00ff00);
+    const Color backgroundColor = Color(0xff0000ff);
+    await tester.pumpWidget(wrapForChip(
+      theme: ThemeData(hoverColor: themeDataHoverColor),
+      child: Center(
+        child: RawChip(
+          color: WidgetStateProperty.resolveWith((Set<WidgetState> states) {
+            if (states.contains(WidgetState.hovered)) {
+              return hoverColor;
+            }
+            return backgroundColor;
+          }),
+          label: const Text('Chip'),
+          onPressed: () {},
+        ),
+      ),
+    ));
+
+    expect(getMaterialBox(tester), paints..rrect(color: backgroundColor));
+
+    // Hover over the chip.
+    final Offset center = tester.getCenter(find.byType(RawChip));
+    final TestGesture gesture = await tester.createGesture(
+      kind: PointerDeviceKind.mouse,
+    );
+    await gesture.addPointer();
+    await gesture.moveTo(center);
+    addTearDown(gesture.removePointer);
+    await tester.pumpAndSettle();
+
+    expect(
+      getMaterialBox(tester),
+      paints..rrect(color: hoverColor)..rect(color: Colors.transparent),
+    );
+    expect(
+      getMaterialBox(tester),
+      isNot(paints..rrect(color: hoverColor)..rect(color: themeDataHoverColor)),
+    );
   });
 }
 

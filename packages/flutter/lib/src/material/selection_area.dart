@@ -2,6 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'app.dart';
+/// @docImport 'material_localizations.dart';
+/// @docImport 'selectable_text.dart';
+library;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/rendering.dart';
 
@@ -99,19 +104,16 @@ class SelectionArea extends StatefulWidget {
   }
 
   @override
-  State<StatefulWidget> createState() => _SelectionAreaState();
+  State<StatefulWidget> createState() => SelectionAreaState();
 }
 
-class _SelectionAreaState extends State<SelectionArea> {
-  FocusNode get _effectiveFocusNode => widget.focusNode ?? (_internalNode ??= FocusNode());
-  FocusNode? _internalNode;
+/// State for a [SelectionArea].
+class SelectionAreaState extends State<SelectionArea> {
+  final GlobalKey<SelectableRegionState> _selectableRegionKey = GlobalKey<SelectableRegionState>();
+  /// The [State] of the [SelectableRegion] for which this [SelectionArea] wraps.
+  SelectableRegionState get selectableRegion => _selectableRegionKey.currentState!;
 
-  @override
-  void dispose() {
-    _internalNode?.dispose();
-    super.dispose();
-  }
-
+  @protected
   @override
   Widget build(BuildContext context) {
     assert(debugCheckHasMaterialLocalizations(context));
@@ -122,8 +124,9 @@ class _SelectionAreaState extends State<SelectionArea> {
       TargetPlatform.macOS                             => cupertinoDesktopTextSelectionHandleControls,
     };
     return SelectableRegion(
+      key: _selectableRegionKey,
       selectionControls: controls,
-      focusNode: _effectiveFocusNode,
+      focusNode: widget.focusNode,
       contextMenuBuilder: widget.contextMenuBuilder,
       magnifierConfiguration: widget.magnifierConfiguration ?? TextMagnifier.adaptiveMagnifierConfiguration,
       onSelectionChanged: widget.onSelectionChanged,

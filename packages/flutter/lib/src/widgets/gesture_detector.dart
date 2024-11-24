@@ -2,6 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'package:flutter/material.dart';
+///
+/// @docImport 'container.dart';
+/// @docImport 'scrollable.dart';
+library;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
@@ -1399,6 +1405,7 @@ class RawGestureDetectorState extends State<RawGestureDetector> {
   Map<Type, GestureRecognizer>? _recognizers = const <Type, GestureRecognizer>{};
   SemanticsGestureDelegate? _semantics;
 
+  @protected
   @override
   void initState() {
     super.initState();
@@ -1406,6 +1413,7 @@ class RawGestureDetectorState extends State<RawGestureDetector> {
     _syncAll(widget.gestures);
   }
 
+  @protected
   @override
   void didUpdateWidget(RawGestureDetector oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -1480,6 +1488,7 @@ class RawGestureDetectorState extends State<RawGestureDetector> {
     semanticsGestureHandler!.validActions = actions; // will call _markNeedsSemanticsUpdate(), if required.
   }
 
+  @protected
   @override
   void dispose() {
     for (final GestureRecognizer recognizer in _recognizers!.values) {
@@ -1532,6 +1541,7 @@ class RawGestureDetectorState extends State<RawGestureDetector> {
     _semantics!.assignSemantics(renderObject);
   }
 
+  @protected
   @override
   Widget build(BuildContext context) {
     Widget result = Listener(
@@ -1550,6 +1560,7 @@ class RawGestureDetectorState extends State<RawGestureDetector> {
     return result;
   }
 
+  @protected
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
@@ -1695,12 +1706,8 @@ class _DefaultSemanticsGestureDelegate extends SemanticsGestureDelegate {
       return null;
     }
     return (DragUpdateDetails details) {
-      if (horizontalHandler != null) {
-        horizontalHandler(details);
-      }
-      if (panHandler != null) {
-        panHandler(details);
-      }
+      horizontalHandler?.call(details);
+      panHandler?.call(details);
     };
   }
 
@@ -1730,12 +1737,8 @@ class _DefaultSemanticsGestureDelegate extends SemanticsGestureDelegate {
       return null;
     }
     return (DragUpdateDetails details) {
-      if (verticalHandler != null) {
-        verticalHandler(details);
-      }
-      if (panHandler != null) {
-        panHandler(details);
-      }
+      verticalHandler?.call(details);
+      panHandler?.call(details);
     };
   }
 }

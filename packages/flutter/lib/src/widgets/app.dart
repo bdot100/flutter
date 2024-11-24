@@ -2,6 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'package:flutter/cupertino.dart';
+/// @docImport 'package:flutter/material.dart';
+///
+/// @docImport 'heroes.dart';
+/// @docImport 'overlay.dart';
+/// @docImport 'view.dart';
+library;
+
 import 'dart:collection' show HashMap;
 
 import 'package:flutter/foundation.dart';
@@ -320,7 +328,7 @@ class WidgetsApp extends StatefulWidget {
     this.home,
     Map<String, WidgetBuilder> this.routes = const <String, WidgetBuilder>{},
     this.builder,
-    this.title = '',
+    this.title,
     this.onGenerateTitle,
     this.textStyle,
     required this.color,
@@ -333,7 +341,8 @@ class WidgetsApp extends StatefulWidget {
     this.showSemanticsDebugger = false,
     this.debugShowWidgetInspector = false,
     this.debugShowCheckedModeBanner = true,
-    this.inspectorSelectButtonBuilder,
+    this.exitWidgetSelectionButtonBuilder,
+    this.moveExitWidgetSelectionButtonBuilder,
     this.shortcuts,
     this.actions,
     this.restorationScopeId,
@@ -417,7 +426,7 @@ class WidgetsApp extends StatefulWidget {
     this.routerConfig,
     this.backButtonDispatcher,
     this.builder,
-    this.title = '',
+    this.title,
     this.onGenerateTitle,
     this.onNavigationNotification,
     this.textStyle,
@@ -431,7 +440,8 @@ class WidgetsApp extends StatefulWidget {
     this.showSemanticsDebugger = false,
     this.debugShowWidgetInspector = false,
     this.debugShowCheckedModeBanner = true,
-    this.inspectorSelectButtonBuilder,
+    this.exitWidgetSelectionButtonBuilder,
+    this.moveExitWidgetSelectionButtonBuilder,
     this.shortcuts,
     this.actions,
     this.restorationScopeId,
@@ -657,7 +667,7 @@ class WidgetsApp extends StatefulWidget {
   ///
   /// When a named route is pushed with [Navigator.pushNamed], the route name is
   /// looked up in this map. If the name is present, the associated
-  /// [widgets.WidgetBuilder] is used to construct a [PageRoute] specified by
+  /// [WidgetBuilder] is used to construct a [PageRoute] specified by
   /// [pageRouteBuilder] to perform an appropriate transition, including [Hero]
   /// animations, to the new route.
   ///
@@ -820,7 +830,7 @@ class WidgetsApp extends StatefulWidget {
   ///
   /// To provide a localized title instead, use [onGenerateTitle].
   /// {@endtemplate}
-  final String title;
+  final String? title;
 
   /// {@template flutter.widgets.widgetsApp.onGenerateTitle}
   /// If non-null this callback function is called to produce the app's
@@ -1018,13 +1028,20 @@ class WidgetsApp extends StatefulWidget {
   /// debug mode.
   final bool debugShowWidgetInspector;
 
-  /// Builds the widget the [WidgetInspector] uses to switch between view and
-  /// inspect modes.
+  /// Builds the widget the [WidgetInspector] uses to exit selection mode.
   ///
-  /// This lets [MaterialApp] to use a Material Design button to toggle the
+  /// This lets [MaterialApp] to use a Material Design button to exit the
   /// inspector select mode without requiring [WidgetInspector] to depend on the
-  /// material package.
-  final InspectorSelectButtonBuilder? inspectorSelectButtonBuilder;
+  /// Material package.
+  final ExitWidgetSelectionButtonBuilder? exitWidgetSelectionButtonBuilder;
+
+  /// Builds the widget the [WidgetInspector] uses to move the exit selection
+  /// mode button.
+  ///
+  /// This lets [MaterialApp] to use a Material Design button to change the
+  /// alignment without requiring [WidgetInspector] to depend on the Material
+  /// package.
+  final MoveExitWidgetSelectionButtonBuilder? moveExitWidgetSelectionButtonBuilder;
 
   /// {@template flutter.widgets.widgetsApp.debugShowCheckedModeBanner}
   /// Turns on a little "DEBUG" banner in debug mode to indicate
@@ -1351,7 +1368,7 @@ class _WidgetsAppState extends State<WidgetsApp> with WidgetsBindingObserver {
 
   AppLifecycleState? _appLifecycleState;
 
-  /// The default value for [onNavigationNotification].
+  /// The default value for [WidgetsApp.onNavigationNotification].
   ///
   /// Does nothing and stops bubbling if the app is detached. Otherwise, updates
   /// the platform with [NavigationNotification.canHandlePop] and stops
@@ -1360,9 +1377,9 @@ class _WidgetsAppState extends State<WidgetsApp> with WidgetsBindingObserver {
     switch (_appLifecycleState) {
       case null:
       case AppLifecycleState.detached:
-      case AppLifecycleState.inactive:
         // Avoid updating the engine when the app isn't ready.
         return true;
+      case AppLifecycleState.inactive:
       case AppLifecycleState.resumed:
       case AppLifecycleState.hidden:
       case AppLifecycleState.paused:
@@ -1747,7 +1764,8 @@ class _WidgetsAppState extends State<WidgetsApp> with WidgetsBindingObserver {
         builder: (BuildContext context, bool debugShowWidgetInspectorOverride, Widget? child) {
           if (widget.debugShowWidgetInspector || debugShowWidgetInspectorOverride) {
             return WidgetInspector(
-              selectButtonBuilder: widget.inspectorSelectButtonBuilder,
+              exitWidgetSelectionButtonBuilder: widget.exitWidgetSelectionButtonBuilder,
+              moveExitWidgetSelectionButtonBuilder: widget.moveExitWidgetSelectionButtonBuilder,
               child: child!,
             );
           }
@@ -1763,7 +1781,7 @@ class _WidgetsAppState extends State<WidgetsApp> with WidgetsBindingObserver {
       return true;
     }());
 
-    final Widget title;
+    final Widget? title;
     if (widget.onGenerateTitle != null) {
       title = Builder(
         // This Builder exists to provide a context below the Localizations widget.
@@ -1778,9 +1796,14 @@ class _WidgetsAppState extends State<WidgetsApp> with WidgetsBindingObserver {
           );
         },
       );
+    } else if (widget.title == null && kIsWeb) {
+      // Updating the <title /> element in the DOM is problematic in embedded
+      // and multiview modes as title should be managed by host apps.
+      // Refer to https://github.com/flutter/flutter/pull/152003 for more info.
+      title = null;
     } else {
       title = Title(
-        title: widget.title,
+        title: widget.title ?? '',
         color: widget.color.withOpacity(1.0),
         child: result,
       );
@@ -1815,7 +1838,7 @@ class _WidgetsAppState extends State<WidgetsApp> with WidgetsBindingObserver {
                       child: Localizations(
                         locale: appLocale,
                         delegates: _localizationsDelegates.toList(),
-                        child: title,
+                        child: title ?? result,
                       ),
                     ),
                   ),
